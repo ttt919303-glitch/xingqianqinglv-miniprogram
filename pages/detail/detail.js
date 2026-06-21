@@ -16,7 +16,17 @@ Page({
       price: '',
       note: ''
     },
-    editingTransportId: ''
+    editingTransportId: '',
+    memoCategories: app.getMemoCategories(),
+    memoForm: {
+      content: '',
+      category: '出发前',
+      date: '',
+      remindTime: '',
+      placeName: '',
+      transportId: ''
+    },
+    editingMemoId: ''
   },
 
   onLoad(options) {
@@ -166,15 +176,87 @@ Page({
     this.loadDetail();
   },
 
-  addMemo() {
-    app.addMemo(this.data.detail.trip.id, {
-      content: '确认酒店入住时间',
-      category: '入住'
+  onMemoInput(event) {
+    const field = event.currentTarget.dataset.field;
+    this.setData({
+      memoForm: {
+        ...this.data.memoForm,
+        [field]: event.detail.value
+      }
+    });
+  },
+
+  chooseMemoCategory(event) {
+    this.setData({
+      memoForm: {
+        ...this.data.memoForm,
+        category: event.currentTarget.dataset.category
+      }
+    });
+  },
+
+  saveMemo() {
+    const form = this.data.memoForm;
+    if (!form.content.trim()) {
+      wx.showToast({
+        title: '请填写待办内容',
+        icon: 'none'
+      });
+      return;
+    }
+    if (this.data.editingMemoId) {
+      app.updateMemo(this.data.editingMemoId, form);
+    } else {
+      app.addMemo(this.data.detail.trip.id, form);
+    }
+    this.setData({
+      editingMemoId: '',
+      memoForm: {
+        content: '',
+        category: '出发前',
+        date: '',
+        remindTime: '',
+        placeName: '',
+        transportId: ''
+      }
     });
     wx.showToast({
-      title: '已加入备忘',
+      title: '待办已保存',
       icon: 'success'
     });
+    this.loadDetail();
+  },
+
+  addMemo() {
+    this.saveMemo();
+  },
+
+  editMemo(event) {
+    const id = event.currentTarget.dataset.id;
+    const memo = this.data.detail.memoSummary.memos.find(item => item.id === id);
+    if (!memo) {
+      return;
+    }
+    this.setData({
+      editingMemoId: id,
+      memoForm: {
+        content: memo.content,
+        category: memo.category,
+        date: memo.date || '',
+        remindTime: memo.remindTime || '',
+        placeName: memo.placeName || '',
+        transportId: memo.transportId || ''
+      }
+    });
+  },
+
+  toggleMemo(event) {
+    app.toggleMemoDone(event.currentTarget.dataset.id);
+    this.loadDetail();
+  },
+
+  deleteMemo(event) {
+    app.removeMemo(event.currentTarget.dataset.id);
     this.loadDetail();
   }
 });

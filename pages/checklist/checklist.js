@@ -3,7 +3,8 @@ const app = getApp();
 Page({
   data: {
     categories: [],
-    progress: {}
+    progress: {},
+    packingLibraries: []
   },
 
   onShow() {
@@ -13,7 +14,8 @@ Page({
     });
     this.setData({
       categories,
-      progress: app.getOverallProgress()
+      progress: app.getOverallProgress(),
+      packingLibraries: app.getPackingLibraries()
     });
   },
 
@@ -49,5 +51,14 @@ Page({
         }
       }
     });
+  },
+
+  applyLibrary(event) {
+    const result = app.applyPackingLibrary(event.currentTarget.dataset.id);
+    wx.showToast({
+      title: result.added ? `已加入${result.added}项` : '已在清单中',
+      icon: 'none'
+    });
+    this.onShow();
   }
 });

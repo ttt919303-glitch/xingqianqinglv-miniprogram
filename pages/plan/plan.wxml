@@ -80,8 +80,14 @@
         enable-scroll="{{false}}"
         enable-zoom="{{false}}"
         show-location="{{false}}"
+        bindmarkertap="tapMapMarker"
       ></map>
       <view class="map-caption">地图预览会跟随景点顺序和路线策略刷新</view>
+    </view>
+    <view wx:if="{{activeMapSpot}}" class="map-spot-card">
+      <view class="spot-name">{{activeMapSpot.name}}</view>
+      <view class="subtitle">{{activeMapSpot.area}} · {{activeMapSpot.bestPeriod}}</view>
+      <view class="spot-note">{{activeMapSpot.note}}</view>
     </view>
     <view class="route-metrics">
       <view class="metric">
@@ -108,7 +114,12 @@
         <view class="route-dot {{item.active ? 'active' : ''}}"></view>
         <view>
           <view class="route-step-title">{{item.title}}</view>
-          <view class="route-step-desc">{{item.desc}}</view>
+          <view class="route-step-desc">{{item.desc}} <text wx:if="{{item.cost}}">· 约 ¥{{item.cost}}</text></view>
+          <view wx:if="{{item.options.length}}" class="segment-options">
+            <view wx:for="{{item.options}}" wx:for-item="option" wx:key="mode" class="segment-option {{option.active ? 'active' : ''}}" bindtap="chooseSegmentMode" data-from="{{item.from}}" data-to="{{item.to}}" data-mode="{{option.mode}}">
+              {{option.mode}} {{option.minutes}}分
+            </view>
+          </view>
         </view>
       </view>
     </view>

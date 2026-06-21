@@ -91,11 +91,57 @@
 
   <view class="section-title">旅行待办</view>
   <view class="memo-card card">
-    <view>
-      <view class="memo-title">{{detail.memoSummary.undone}} 条待办</view>
-      <view class="subtitle">出发前、路上、入住、游玩都可以记录</view>
+    <view class="memo-head">
+      <view>
+        <view class="memo-title">{{detail.memoSummary.undone}} 条待办</view>
+        <view class="subtitle">出发前、路上、入住、游玩都可以记录</view>
+      </view>
+      <view class="memo-badge">{{detail.memoSummary.done}} 已完成</view>
     </view>
-    <button class="mini-btn" bindtap="addMemo">加一条</button>
+    <view class="memo-category-tabs">
+      <view wx:for="{{memoCategories}}" wx:key="*this" class="memo-category {{memoForm.category === item ? 'active' : ''}}" bindtap="chooseMemoCategory" data-category="{{item}}">
+        {{item}}
+      </view>
+    </view>
+    <view class="field">
+      <view class="label">待办内容</view>
+      <input value="{{memoForm.content}}" data-field="content" placeholder="例如：预约门票 / 确认入住 / 提前值机" bindinput="onMemoInput" />
+    </view>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">日期</view>
+        <input value="{{memoForm.date}}" data-field="date" placeholder="7月3日" bindinput="onMemoInput" />
+      </view>
+      <view class="field">
+        <view class="label">提醒</view>
+        <input value="{{memoForm.remindTime}}" data-field="remindTime" placeholder="08:30" bindinput="onMemoInput" />
+      </view>
+    </view>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">关联景点</view>
+        <input value="{{memoForm.placeName}}" data-field="placeName" placeholder="外滩 / 酒店" bindinput="onMemoInput" />
+      </view>
+      <view class="field">
+        <view class="label">关联交通</view>
+        <input value="{{memoForm.transportId}}" data-field="transportId" placeholder="G7012 / MUxxxx" bindinput="onMemoInput" />
+      </view>
+    </view>
+    <button class="primary-btn" bindtap="saveMemo">{{editingMemoId ? '保存待办' : '新增待办'}}</button>
+  </view>
+  <view wx:for="{{detail.memoSummary.memos}}" wx:key="id" class="memo-item card {{item.done ? 'done' : ''}}">
+    <view class="memo-check" bindtap="toggleMemo" data-id="{{item.id}}">{{item.done ? '✓' : ''}}</view>
+    <view class="memo-main">
+      <view class="memo-line">{{item.content}}</view>
+      <view class="subtitle">{{item.category}} · {{item.date || '日期待填'}} {{item.remindTime || ''}}</view>
+      <view wx:if="{{item.placeName || item.transportId}}" class="memo-link">
+        {{item.placeName || '未关联景点'}} · {{item.transportId || '未关联交通'}}
+      </view>
+    </view>
+    <view class="memo-actions">
+      <button class="mini-btn" bindtap="editMemo" data-id="{{item.id}}">编辑</button>
+      <button class="mini-btn danger" bindtap="deleteMemo" data-id="{{item.id}}">删除</button>
+    </view>
   </view>
 
   <view class="section-title">账单与清单</view>

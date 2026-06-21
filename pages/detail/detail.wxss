@@ -106,11 +106,89 @@
 }
 
 .memo-card {
+  padding: 28rpx;
+  background: #fff9f0;
+}
+
+.memo-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 28rpx;
-  background: #fff9f0;
+  gap: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.memo-badge {
+  flex: 0 0 auto;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #e7f7f4;
+  color: #269384;
+  font-size: 22rpx;
+  font-weight: 900;
+}
+
+.memo-category-tabs {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+  overflow-x: auto;
+}
+
+.memo-category {
+  flex: 0 0 auto;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  color: #7b8492;
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
+.memo-category.active {
+  background: #4a9fe8;
+  color: #ffffff;
+}
+
+.memo-item {
+  display: grid;
+  grid-template-columns: 56rpx 1fr auto;
+  gap: 18rpx;
+  align-items: center;
+  margin-top: 18rpx;
+  padding: 24rpx;
+}
+
+.memo-item.done {
+  opacity: 0.72;
+}
+
+.memo-check {
+  width: 48rpx;
+  height: 48rpx;
+  line-height: 48rpx;
+  border-radius: 50%;
+  background: #e7f7f4;
+  color: #269384;
+  text-align: center;
+  font-weight: 900;
+}
+
+.memo-line {
+  color: #20242a;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.memo-link {
+  margin-top: 6rpx;
+  color: #a07835;
+  font-size: 22rpx;
+}
+
+.memo-actions {
+  display: flex;
+  gap: 10rpx;
 }
 
 .mini-btn {

@@ -456,6 +456,59 @@ App({
     return { mode: '地铁/打车', minutes: 38, tip: '跨区域移动，建议提前查看实时路况。' };
   },
 
+  getTransitOptions(from, to) {
+    const distance = Math.max(this.distanceBetween(from, to), 0.8);
+    const nearby = from.area === to.area || distance <= 1.8;
+    return [
+      {
+        mode: '步行',
+        minutes: nearby ? 12 : Math.round(18 + distance * 7),
+        cost: 0,
+        tip: nearby ? '两个景点相邻，适合步行衔接。' : '距离略长，适合边走边逛时选择。'
+      },
+      {
+        mode: '地铁',
+        minutes: Math.round(16 + distance * 4),
+        cost: distance > 4.5 ? 6 : 4,
+        tip: '适合跨区域移动，时间稳定。'
+      },
+      {
+        mode: '打车',
+        minutes: Math.round(8 + distance * 5),
+        cost: Math.round(12 + distance * 8),
+        tip: '更省体力，适合赶时间或多人同行。'
+      },
+      {
+        mode: '骑行',
+        minutes: Math.round(10 + distance * 6),
+        cost: 0,
+        tip: '适合天气好、距离适中的路段。'
+      }
+    ];
+  },
+
+  getRouteSegmentKey(from, to) {
+    return `${from}->${to}`;
+  },
+
+  getRouteSegmentModes(tripId) {
+    const allModes = wx.getStorageSync('routeSegmentModes') || {};
+    return allModes[tripId] || {};
+  },
+
+  updateRouteSegmentMode(tripId, from, to, mode) {
+    const allModes = wx.getStorageSync('routeSegmentModes') || {};
+    const tripModes = allModes[tripId] || {};
+    const key = this.getRouteSegmentKey(from, to);
+    wx.setStorageSync('routeSegmentModes', {
+      ...allModes,
+      [tripId]: {
+        ...tripModes,
+        [key]: mode
+      }
+    });
+  },
+
   sortByNearest(attractions) {
     const rest = attractions.slice().sort((a, b) => a.timeValue - b.timeValue);
     const result = rest.length ? [rest.shift()] : [];
@@ -506,21 +559,35 @@ App({
       orderedAttractions = this.sortByTransfer(attractions);
     }
 
+    const segmentModes = trip.id ? this.getRouteSegmentModes(trip.id) : {};
     const segments = orderedAttractions.slice(0, -1).map((item, index) => {
       const next = orderedAttractions[index + 1];
       const transit = this.estimateTransit(item, next);
+      const options = this.getTransitOptions(item, next);
+      const defaultMode = transit.mode.includes('打车')
+        ? '打车'
+        : transit.mode.includes('地铁') || transit.mode.includes('公交')
+          ? '地铁'
+          : transit.mode;
+      const selectedMode = segmentModes[this.getRouteSegmentKey(item.name, next.name)];
+      const selectedOption = options.find(option => option.mode === selectedMode)
+        || options.find(option => option.mode === defaultMode)
+        || transit;
       return {
         from: item.name,
         to: next.name,
-        mode: transit.mode,
-        minutes: transit.minutes,
-        tip: transit.tip,
+        mode: selectedOption.mode,
+        minutes: selectedOption.minutes,
+        cost: Number(selectedOption.cost) || 0,
+        tip: selectedOption.tip,
+        options,
         title: `${item.name} -> ${next.name}`,
-        desc: `${transit.mode}约${transit.minutes}分钟，${transit.tip}`
+        desc: `${selectedOption.mode}约${selectedOption.minutes}分钟，${selectedOption.tip}`
       };
     });
     const stayMinutes = orderedAttractions.reduce((sum, item) => sum + item.stayMinutes, 0);
     const transitMinutes = segments.reduce((sum, item) => sum + item.minutes, 0);
+    const transportBudget = segments.reduce((sum, item) => sum + (Number(item.cost) || 0), 0);
     const transferCount = segments.filter(item => item.mode !== '步行').length;
     const routeNames = orderedAttractions.map(item => item.name).join(' -> ');
     const totalMinutes = stayMinutes + transitMinutes;
@@ -533,10 +600,11 @@ App({
       segments,
       stayMinutes,
       transitMinutes,
+      transportBudget,
       totalMinutes,
       totalText: this.formatMinutes(totalMinutes),
       transferCount,
-      summary: `推荐顺序：${routeNames}。${strategy.name}预计游玩 ${this.formatMinutes(totalMinutes)}，交通约${transitMinutes}分钟，非步行换乘 ${transferCount} 次。`
+      summary: `推荐顺序：${routeNames}。${strategy.name}预计游玩 ${this.formatMinutes(totalMinutes)}，交通约${transitMinutes}分钟，非步行换乘 ${transferCount} 次，交通预算约 ¥${transportBudget}。`
     };
   },
 
@@ -857,6 +925,10 @@ App({
     return memos.filter(item => item.tripId === tripId);
   },
 
+  getMemoCategories() {
+    return ['出发前', '路上', '入住', '游玩', '返程', '重要事项'];
+  },
+
   addMemo(tripId, data) {
     const memos = wx.getStorageSync('tripMemos') || [];
     const memo = {
@@ -867,19 +939,66 @@ App({
       date: data.date || '',
       remindTime: data.remindTime || '',
       placeName: data.placeName || '',
+      transportId: data.transportId || '',
       done: Boolean(data.done)
     };
     wx.setStorageSync('tripMemos', memos.concat(memo));
     return memo;
   },
 
+  updateMemo(id, patch) {
+    const memos = wx.getStorageSync('tripMemos') || [];
+    let updated = null;
+    const nextMemos = memos.map(item => {
+      if (item.id !== id) {
+        return item;
+      }
+      updated = {
+        ...item,
+        ...patch,
+        content: patch.content !== undefined ? String(patch.content).trim() : item.content
+      };
+      return updated;
+    });
+    wx.setStorageSync('tripMemos', nextMemos);
+    return updated;
+  },
+
+  toggleMemoDone(id) {
+    const memos = wx.getStorageSync('tripMemos') || [];
+    let updated = null;
+    const nextMemos = memos.map(item => {
+      if (item.id !== id) {
+        return item;
+      }
+      updated = {
+        ...item,
+        done: !item.done
+      };
+      return updated;
+    });
+    wx.setStorageSync('tripMemos', nextMemos);
+    return updated;
+  },
+
+  removeMemo(id) {
+    const memos = wx.getStorageSync('tripMemos') || [];
+    wx.setStorageSync('tripMemos', memos.filter(item => item.id !== id));
+  },
+
   getMemoSummary(tripId) {
     const memos = this.getMemos(tripId);
     const done = memos.filter(item => item.done).length;
+    const byCategory = this.getMemoCategories().map(name => ({
+      name,
+      total: memos.filter(item => item.category === name).length,
+      done: memos.filter(item => item.category === name && item.done).length
+    })).filter(item => item.total);
     return {
       total: memos.length,
       done,
       undone: memos.length - done,
+      byCategory,
       memos
     };
   },
@@ -1050,6 +1169,94 @@ App({
     };
   },
 
+  getPackingLibraries() {
+    return [
+      {
+        id: 'short',
+        name: '短途旅行推荐',
+        desc: '1-2 天轻装出发，重点补齐随身与电子用品。',
+        icon: '🌿',
+        items: [
+          { categoryId: 'travel', name: '折叠购物袋', count: 1 },
+          { categoryId: 'electronics', name: '备用数据线', count: 1 },
+          { categoryId: 'wash', name: '旅行装洗护', count: 1 },
+          { categoryId: 'medicine', name: '肠胃药', count: 1 }
+        ]
+      },
+      {
+        id: 'beach',
+        name: '海边旅行推荐',
+        desc: '适合海边、岛屿、亲水活动，补充防晒与防水物品。',
+        icon: '🏖',
+        items: [
+          { categoryId: 'travel', name: '防水手机袋', count: 1 },
+          { categoryId: 'clothes', name: '泳衣', count: 1 },
+          { categoryId: 'wash', name: '晒后修护', count: 1 },
+          { categoryId: 'travel', name: '沙滩拖鞋', count: 1 }
+        ]
+      },
+      {
+        id: 'family',
+        name: '亲子旅行推荐',
+        desc: '兼顾孩子用品、常用药和路上安抚物。',
+        icon: '🧸',
+        items: [
+          { categoryId: 'medicine', name: '儿童退烧贴', count: 1 },
+          { categoryId: 'travel', name: '湿纸巾', count: 2 },
+          { categoryId: 'clothes', name: '备用衣物', count: 2 },
+          { categoryId: 'travel', name: '小零食', count: 1 }
+        ]
+      },
+      {
+        id: 'business',
+        name: '商务出行推荐',
+        desc: '会议、差旅、短期办公常用物品。',
+        icon: '💼',
+        items: [
+          { categoryId: 'electronics', name: '笔记本电脑', count: 1 },
+          { categoryId: 'electronics', name: '电脑充电器', count: 1 },
+          { categoryId: 'docs', name: '会议资料', count: 1 },
+          { categoryId: 'clothes', name: '正装衬衫', count: 1 }
+        ]
+      },
+      {
+        id: 'camping',
+        name: '露营旅行推荐',
+        desc: '户外过夜、轻露营和野餐场景。',
+        icon: '⛺',
+        items: [
+          { categoryId: 'travel', name: '头灯', count: 1 },
+          { categoryId: 'travel', name: '野餐垫', count: 1 },
+          { categoryId: 'medicine', name: '驱蚊用品', count: 1 },
+          { categoryId: 'clothes', name: '防风外套', count: 1 }
+        ]
+      }
+    ];
+  },
+
+  applyPackingLibrary(libraryId) {
+    const library = this.getPackingLibraries().find(item => item.id === libraryId);
+    if (!library) {
+      return { added: 0, skipped: 0 };
+    }
+    let added = 0;
+    let skipped = 0;
+    library.items.forEach(item => {
+      const result = this.addItem({
+        categoryId: item.categoryId,
+        name: item.name,
+        count: item.count || 1,
+        note: library.name
+      }, { unique: true });
+      if (result) {
+        added += 1;
+      } else {
+        skipped += 1;
+      }
+    });
+    return { added, skipped };
+  },
+
   addItem(data, options = {}) {
     const customItems = wx.getStorageSync('customItems') || [];
     if (options.unique) {
@@ -1113,6 +1320,7 @@ App({
     wx.setStorageSync('tripBills', []);
     wx.setStorageSync('tripMemos', []);
     wx.setStorageSync('tripTransports', []);
+    wx.setStorageSync('routeSegmentModes', {});
     wx.setStorageSync('favoritePlaces', []);
     wx.setStorageSync('preferredCategoryId', '');
     wx.setStorageSync('selectedTripId', '');

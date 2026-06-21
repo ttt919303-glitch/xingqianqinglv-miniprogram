@@ -274,6 +274,55 @@ test('详情页模块卡片会跳转到对应功能页', () => {
   ]);
 });
 
+test('旅行备忘支持新增编辑完成删除和关联信息', () => {
+  const env = loadMiniProgram();
+  const memo = env.app.addMemo('shanghai', {
+    content: '提前预约上海博物馆',
+    category: '游玩',
+    date: '7月3日',
+    remindTime: '08:30',
+    placeName: '上海博物馆',
+    transportId: 'G7012'
+  });
+
+  env.app.updateMemo(memo.id, { content: '提前预约上海博物馆门票', category: '出发前' });
+  env.app.toggleMemoDone(memo.id);
+  const summary = env.app.getMemoSummary('shanghai');
+
+  assert.strictEqual(summary.total, 1);
+  assert.strictEqual(summary.done, 1);
+  assert.strictEqual(summary.byCategory.find(item => item.name === '出发前').total, 1);
+  assert.strictEqual(summary.memos[0].content, '提前预约上海博物馆门票');
+  assert.strictEqual(summary.memos[0].placeName, '上海博物馆');
+  assert.strictEqual(summary.memos[0].transportId, 'G7012');
+
+  env.app.removeMemo(memo.id);
+  assert.strictEqual(env.app.getMemoSummary('shanghai').total, 0);
+});
+
+test('详情页旅行待办表单可以保存、勾选和删除', () => {
+  const env = loadMiniProgram();
+  const detailConfig = env.run('pages/detail/detail.js');
+  const page = createPage(detailConfig, { id: 'shanghai' });
+  page.triggerLoad();
+  page.triggerShow();
+
+  page.onMemoInput({ currentTarget: { dataset: { field: 'content' } }, detail: { value: '确认酒店入住时间' } });
+  page.onMemoInput({ currentTarget: { dataset: { field: 'category' } }, detail: { value: '入住' } });
+  page.onMemoInput({ currentTarget: { dataset: { field: 'remindTime' } }, detail: { value: '15:00' } });
+  page.saveMemo();
+
+  const memo = env.app.getMemos('shanghai')[0];
+  assert.strictEqual(memo.content, '确认酒店入住时间');
+  assert.strictEqual(page.data.detail.memoSummary.total, 1);
+
+  page.toggleMemo({ currentTarget: { dataset: { id: memo.id } } });
+  assert.strictEqual(env.app.getMemos('shanghai')[0].done, true);
+
+  page.deleteMemo({ currentTarget: { dataset: { id: memo.id } } });
+  assert.strictEqual(env.app.getMemos('shanghai').length, 0);
+});
+
 test('账单统计会区分预算和实际花费', () => {
   const env = loadMiniProgram();
   const trip = env.app.addTrip({ city: '南京', dateRange: '8月5日', note: '' });
@@ -426,6 +475,80 @@ test('路线页会生成地图 marker 和路线预览', () => {
   assert.strictEqual(page.data.mapPreview.polyline[0].points.length, page.data.routeSpots.length);
   assert.ok(page.data.mapPreview.latitude);
   assert.ok(page.data.mapPreview.longitude);
+});
+
+test('每段路线可以选择交通方式并重算时间和预算', () => {
+  const env = loadMiniProgram();
+  const beforePlan = env.app.buildRoutePlan(env.app.getTripById('shanghai'), 'time');
+  const firstSegment = beforePlan.segments[0];
+
+  env.app.updateRouteSegmentMode('shanghai', firstSegment.from, firstSegment.to, '打车');
+  const afterPlan = env.app.buildRoutePlan(env.app.getTripById('shanghai'), 'time');
+  const updatedSegment = afterPlan.segments[0];
+
+  assert.strictEqual(updatedSegment.mode, '打车');
+  assert.ok(updatedSegment.options.some(item => item.mode === '地铁'));
+  assert.ok(updatedSegment.cost > 0);
+  assert.ok(afterPlan.transportBudget >= updatedSegment.cost);
+  assert.ok(afterPlan.summary.includes('交通预算'));
+});
+
+test('路线页切换分段交通方式会刷新路线步骤', () => {
+  const env = loadMiniProgram();
+  const planConfig = env.run('pages/plan/plan.js');
+  const page = createPage(planConfig, { id: 'shanghai' });
+  page.triggerLoad();
+  const first = page.data.routePlan.segments[0];
+
+  page.chooseSegmentMode({
+    currentTarget: {
+      dataset: {
+        from: first.from,
+        to: first.to,
+        mode: '打车'
+      }
+    }
+  });
+
+  assert.strictEqual(page.data.routePlan.segments[0].mode, '打车');
+  assert.ok(page.data.routeSteps[0].desc.includes('打车'));
+});
+
+test('推荐物品库可以一键加入清单且避免重复', () => {
+  const env = loadMiniProgram();
+  const beforeCount = env.app.getAllItems().length;
+  const result = env.app.applyPackingLibrary('beach');
+  const secondResult = env.app.applyPackingLibrary('beach');
+
+  assert.ok(result.added > 0);
+  assert.strictEqual(secondResult.added, 0);
+  assert.ok(env.app.getAllItems().length > beforeCount);
+  assert.ok(env.app.getCategories().find(item => item.id === 'travel').items.some(item => item.name === '防水手机袋'));
+});
+
+test('清单页可以展示并应用推荐物品库', () => {
+  const env = loadMiniProgram();
+  const checklistConfig = env.run('pages/checklist/checklist.js');
+  const page = createPage(checklistConfig);
+  page.triggerShow();
+
+  assert.ok(page.data.packingLibraries.length >= 3);
+  page.applyLibrary({ currentTarget: { dataset: { id: 'business' } } });
+
+  assert.ok(env.app.getAllItems().some(item => item.name === '笔记本电脑'));
+  assert.ok(page.data.categories.some(category => category.items.some(item => item.name === '笔记本电脑')));
+});
+
+test('点击地图点会显示对应景点详情提示', () => {
+  const env = loadMiniProgram();
+  const planConfig = env.run('pages/plan/plan.js');
+  const page = createPage(planConfig, { id: 'shanghai' });
+  page.triggerLoad();
+
+  page.tapMapMarker({ markerId: 1 });
+
+  assert.ok(page.data.activeMapSpot.name);
+  assert.ok(page.data.activeMapSpot.note);
 });
 
 test('旅行详情会聚合路线、交通、备忘、账单和清单入口', () => {

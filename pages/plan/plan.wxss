@@ -333,6 +333,13 @@
   font-weight: 800;
 }
 
+.map-spot-card {
+  margin-top: 16rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 20rpx;
+  background: #fff9f0;
+}
+
 .route-text {
   margin-top: 14rpx;
   color: #626b78;
@@ -406,6 +413,27 @@
   color: #89919e;
   font-size: 24rpx;
   line-height: 1.55;
+}
+
+.segment-options {
+  display: flex;
+  gap: 10rpx;
+  margin-top: 14rpx;
+  flex-wrap: wrap;
+}
+
+.segment-option {
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: #f1f5f9;
+  color: #687382;
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
+.segment-option.active {
+  background: #4a9fe8;
+  color: #ffffff;
 }
 
 .delete-btn {

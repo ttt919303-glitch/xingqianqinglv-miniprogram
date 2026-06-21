@@ -28,6 +28,7 @@ Page({
       markers: [],
       polyline: []
     },
+    activeMapSpot: null,
     editMode: false,
     routeSource: 'local',
     routeLoading: false,
@@ -76,6 +77,23 @@ Page({
     this.buildRoute();
   },
 
+  chooseSegmentMode(event) {
+    const dataset = event.currentTarget.dataset;
+    app.updateRouteSegmentMode(this.data.trip.id, dataset.from, dataset.to, dataset.mode);
+    this.buildRoute();
+  },
+
+  tapMapMarker(event) {
+    const markerId = Number(event.markerId);
+    const spot = this.data.routeSpots[markerId - 1];
+    if (!spot) {
+      return;
+    }
+    this.setData({
+      activeMapSpot: spot
+    });
+  },
+
   buildRoute() {
     const trip = this.data.trip;
     if (!trip) {
@@ -86,8 +104,15 @@ Page({
       return {
         title: item.title,
         desc: item.desc,
+        from: item.from,
+        to: item.to,
         mode: item.mode,
         minutes: item.minutes,
+        cost: item.cost || 0,
+        options: (item.options || []).map(option => ({
+          ...option,
+          active: option.mode === item.mode
+        })),
         active: index === 0
       };
     });
@@ -117,8 +142,15 @@ Page({
     const routeSteps = routePlan.segments.map((item, index) => ({
       title: item.title,
       desc: item.desc,
+      from: item.from,
+      to: item.to,
       mode: item.mode,
       minutes: item.minutes,
+      cost: item.cost || 0,
+      options: (item.options || []).map(option => ({
+        ...option,
+        active: option.mode === item.mode
+      })),
       active: index === 0
     }));
     if (routePlan.orderedAttractions.length) {

@@ -46,6 +46,60 @@
   font-weight: 900;
 }
 
+.library-section {
+  margin-top: 30rpx;
+}
+
+.library-scroll {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 18rpx;
+  overflow-x: auto;
+  padding-bottom: 8rpx;
+}
+
+.library-card {
+  flex: 0 0 286rpx;
+  padding: 24rpx;
+  background: #fff9f0;
+}
+
+.library-icon {
+  width: 64rpx;
+  height: 64rpx;
+  line-height: 64rpx;
+  border-radius: 20rpx;
+  background: #ffffff;
+  text-align: center;
+  font-size: 34rpx;
+}
+
+.library-name {
+  margin-top: 16rpx;
+  color: #20242a;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.library-desc {
+  margin-top: 8rpx;
+  min-height: 70rpx;
+  color: #7b8492;
+  font-size: 22rpx;
+  line-height: 1.45;
+}
+
+.library-action {
+  display: inline-block;
+  margin-top: 14rpx;
+  padding: 7rpx 14rpx;
+  border-radius: 999rpx;
+  background: #e7f7f4;
+  color: #269384;
+  font-size: 21rpx;
+  font-weight: 800;
+}
+
 .category-list {
   margin-top: 28rpx;
 }
