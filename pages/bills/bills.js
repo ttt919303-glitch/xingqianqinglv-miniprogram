@@ -13,6 +13,11 @@ Page({
     },
     title: '',
     amount: '',
+    date: '',
+    placeName: '',
+    payment: '',
+    note: '',
+    editingBillId: '',
     categoryIndex: 0,
     typeIndex: 0,
     categories: ['交通', '住宿', '餐饮', '门票', '购物', '其他'],
@@ -56,6 +61,22 @@ Page({
     this.setData({ amount: event.detail.value });
   },
 
+  onDateInput(event) {
+    this.setData({ date: event.detail.value });
+  },
+
+  onPlaceInput(event) {
+    this.setData({ placeName: event.detail.value });
+  },
+
+  onPaymentInput(event) {
+    this.setData({ payment: event.detail.value });
+  },
+
+  onNoteInput(event) {
+    this.setData({ note: event.detail.value });
+  },
+
   onCategoryChange(event) {
     this.setData({ categoryIndex: Number(event.detail.value) });
   },
@@ -64,7 +85,7 @@ Page({
     this.setData({ typeIndex: Number(event.detail.value) });
   },
 
-  addBill() {
+  saveBill() {
     if (!this.data.title.trim() || !Number(this.data.amount)) {
       wx.showToast({
         title: '请填写账单和金额',
@@ -72,19 +93,64 @@ Page({
       });
       return;
     }
-    app.addBill(this.data.selectedTripId, {
+    const payload = {
       title: this.data.title,
       amount: this.data.amount,
       category: this.data.categories[this.data.categoryIndex],
-      type: this.data.typeIndex === 1 ? 'budget' : 'actual'
-    });
+      type: this.data.typeIndex === 1 ? 'budget' : 'actual',
+      date: this.data.date,
+      placeName: this.data.placeName,
+      payment: this.data.payment,
+      note: this.data.note
+    };
+    if (this.data.editingBillId) {
+      app.updateBill(this.data.editingBillId, payload);
+    } else {
+      app.addBill(this.data.selectedTripId, payload);
+    }
     this.setData({
       title: '',
-      amount: ''
+      amount: '',
+      date: '',
+      placeName: '',
+      payment: '',
+      note: '',
+      editingBillId: ''
     });
     this.refresh();
     wx.showToast({
-      title: '已记录',
+      title: '已保存',
+      icon: 'success'
+    });
+  },
+
+  addBill() {
+    this.saveBill();
+  },
+
+  editBill(event) {
+    const bill = this.data.summary.bills.find(item => item.id === event.currentTarget.dataset.id);
+    if (!bill) {
+      return;
+    }
+    this.setData({
+      editingBillId: bill.id,
+      title: bill.title,
+      amount: String(bill.amount),
+      date: bill.date || '',
+      placeName: bill.placeName || '',
+      payment: bill.payment || '',
+      note: bill.note || '',
+      categoryIndex: Math.max(0, this.data.categories.indexOf(bill.category)),
+      typeIndex: bill.type === 'budget' ? 1 : 0
+    });
+  },
+
+  deleteBill(event) {
+    app.removeBill(event.currentTarget.dataset.id);
+    this.refresh();
+    wx.showToast({
+      title: '已删除',
       icon: 'success'
     });
   }

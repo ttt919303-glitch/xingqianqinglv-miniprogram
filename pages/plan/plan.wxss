@@ -313,6 +313,26 @@
   line-height: 1.45;
 }
 
+.map-preview {
+  margin-top: 22rpx;
+  overflow: hidden;
+  border-radius: 28rpx;
+  background: #eef7ff;
+  border: 2rpx solid rgba(74, 159, 232, 0.16);
+}
+
+.route-map {
+  width: 100%;
+  height: 360rpx;
+}
+
+.map-caption {
+  padding: 16rpx 20rpx;
+  color: #4a6f95;
+  font-size: 23rpx;
+  font-weight: 800;
+}
+
 .route-text {
   margin-top: 14rpx;
   color: #626b78;

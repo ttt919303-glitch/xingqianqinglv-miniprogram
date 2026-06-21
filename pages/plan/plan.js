@@ -21,6 +21,13 @@ Page({
       summary: '',
       conflicts: []
     },
+    mapPreview: {
+      latitude: 31.2304,
+      longitude: 121.4737,
+      scale: 12,
+      markers: [],
+      polyline: []
+    },
     editMode: false,
     routeSource: 'local',
     routeLoading: false,
@@ -100,6 +107,7 @@ Page({
       routeSteps,
       routeSpots: routePlan.orderedAttractions,
       timeline: app.buildEditableTimeline({ ...trip, attractions: routePlan.orderedAttractions }),
+      mapPreview: app.buildRouteMapPreview(trip, routePlan),
       routeSource: routePlan.source || 'local',
       routeError: routePlan.errorMessage || ''
     });
@@ -129,6 +137,7 @@ Page({
       routeSteps,
       routeSpots: routePlan.orderedAttractions,
       timeline: app.buildEditableTimeline({ ...this.data.trip, attractions: routePlan.orderedAttractions }),
+      mapPreview: app.buildRouteMapPreview(this.data.trip, routePlan),
       routeSource: routePlan.source || 'local',
       routeError: routePlan.errorMessage || ''
     });

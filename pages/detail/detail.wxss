@@ -28,6 +28,20 @@
   padding: 26rpx;
 }
 
+.module-card {
+  position: relative;
+}
+
+.module-card::after {
+  content: '›';
+  position: absolute;
+  right: 24rpx;
+  top: 28rpx;
+  color: #b7c1ce;
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
 .module-name {
   font-size: 28rpx;
   font-weight: 900;
@@ -71,6 +85,19 @@
   font-size: 24rpx;
 }
 
+.ticket-price {
+  margin-top: 8rpx;
+  color: #269384;
+  font-size: 24rpx;
+  font-weight: 900;
+}
+
+.ticket-actions {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
 .action-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -97,4 +124,46 @@
   color: #4a9fe8;
   font-size: 24rpx;
   font-weight: 900;
+}
+
+.mini-btn.danger {
+  color: #d45b5b;
+}
+
+.form-card {
+  margin: 24rpx 0;
+  padding: 28rpx;
+}
+
+.form-title {
+  margin-bottom: 20rpx;
+  color: #20242a;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.field {
+  margin-bottom: 18rpx;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
+.label {
+  margin-bottom: 8rpx;
+  color: #7b8492;
+  font-size: 23rpx;
+}
+
+input {
+  height: 78rpx;
+  line-height: 78rpx;
+  padding: 0 20rpx;
+  border-radius: 18rpx;
+  background: #f6f8fb;
+  color: #20242a;
+  font-size: 25rpx;
 }

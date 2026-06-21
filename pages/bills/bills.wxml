@@ -23,6 +23,10 @@
     </view>
   </view>
 
+  <view wx:for="{{summary.warnings}}" wx:key="*this" class="warning-card">
+    {{item}}
+  </view>
+
   <view class="form-card card">
     <view class="field">
       <view class="label">账单名称</view>
@@ -46,7 +50,27 @@
         <view class="picker-value">{{types[typeIndex]}}</view>
       </picker>
     </view>
-    <button class="primary-btn" bindtap="addBill">记录账单</button>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">日期</view>
+        <input value="{{date}}" placeholder="例如：8月5日" bindinput="onDateInput" />
+      </view>
+      <view class="field">
+        <view class="label">地点</view>
+        <input value="{{placeName}}" placeholder="例如：夫子庙" bindinput="onPlaceInput" />
+      </view>
+    </view>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">支付方式</view>
+        <input value="{{payment}}" placeholder="微信 / 支付宝 / 现金" bindinput="onPaymentInput" />
+      </view>
+      <view class="field">
+        <view class="label">备注</view>
+        <input value="{{note}}" placeholder="例如：两人午餐" bindinput="onNoteInput" />
+      </view>
+    </view>
+    <button class="primary-btn" bindtap="saveBill">{{editingBillId ? '保存修改' : '记录账单'}}</button>
   </view>
 
   <view class="section-title">分类统计</view>
@@ -61,8 +85,16 @@
   <view wx:for="{{summary.bills}}" wx:key="id" class="bill-item card">
     <view>
       <view class="bill-title">{{item.title}}</view>
-      <view class="subtitle">{{item.category}} · {{item.type === 'budget' ? '预算' : '实际花费'}}</view>
+      <view class="subtitle">{{item.category}} · {{item.type === 'budget' ? '预算' : '实际花费'}} · {{item.date || '日期待填'}}</view>
+      <view class="bill-meta">{{item.placeName || '地点待填'}} · {{item.payment || '支付方式待填'}}</view>
+      <view wx:if="{{item.note}}" class="bill-meta">{{item.note}}</view>
     </view>
-    <view class="bill-money">¥{{item.amount}}</view>
+    <view class="bill-right">
+      <view class="bill-money">¥{{item.amount}}</view>
+      <view class="bill-actions">
+        <button class="mini-btn" bindtap="editBill" data-id="{{item.id}}">编辑</button>
+        <button class="mini-btn danger" bindtap="deleteBill" data-id="{{item.id}}">删除</button>
+      </view>
+    </view>
   </view>
 </view>

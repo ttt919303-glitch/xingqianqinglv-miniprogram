@@ -8,7 +8,7 @@
   </view>
 
   <view class="module-grid">
-    <view wx:for="{{detail.modules}}" wx:key="id" class="module-card card">
+    <view wx:for="{{detail.modules}}" wx:key="id" class="module-card card" bindtap="openModule" data-id="{{item.id}}">
       <view class="module-name">{{item.name}}</view>
       <view class="module-desc">{{item.desc}}</view>
     </view>
@@ -22,7 +22,66 @@
       <view class="subtitle">{{item.from}} → {{item.to}}</view>
       <view class="ticket-time">{{item.departTime}} - {{item.arriveTime}}</view>
       <view class="ticket-note">{{item.seat}} · {{item.remindText}}</view>
+      <view wx:if="{{item.price}}" class="ticket-price">¥{{item.price}} · {{item.role}}</view>
+      <view wx:if="{{item.note}}" class="ticket-note">{{item.note}}</view>
+      <view class="ticket-actions">
+        <button class="mini-btn" bindtap="editTransport" data-id="{{item.id}}">编辑</button>
+        <button wx:if="{{!item.generated}}" class="mini-btn danger" bindtap="deleteTransport" data-id="{{item.id}}">删除</button>
+      </view>
     </view>
+  </view>
+
+  <view class="form-card card">
+    <view class="form-title">{{editingTransportId ? '编辑交通卡' : '新增交通卡'}}</view>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">角色</view>
+        <input value="{{transportForm.role}}" data-field="role" placeholder="去程 / 返程" bindinput="onTransportInput" />
+      </view>
+      <view class="field">
+        <view class="label">类型</view>
+        <input value="{{transportForm.type}}" data-field="type" placeholder="飞机 / 高铁 / 自驾" bindinput="onTransportInput" />
+      </view>
+    </view>
+    <view class="field">
+      <view class="label">班次号</view>
+      <input value="{{transportForm.code}}" data-field="code" placeholder="G7012 / MUxxxx" bindinput="onTransportInput" />
+    </view>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">出发地</view>
+        <input value="{{transportForm.from}}" data-field="from" placeholder="南京南" bindinput="onTransportInput" />
+      </view>
+      <view class="field">
+        <view class="label">到达地</view>
+        <input value="{{transportForm.to}}" data-field="to" placeholder="上海虹桥" bindinput="onTransportInput" />
+      </view>
+    </view>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">出发</view>
+        <input value="{{transportForm.departTime}}" data-field="departTime" placeholder="08:20" bindinput="onTransportInput" />
+      </view>
+      <view class="field">
+        <view class="label">到达</view>
+        <input value="{{transportForm.arriveTime}}" data-field="arriveTime" placeholder="10:05" bindinput="onTransportInput" />
+      </view>
+    </view>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">座位</view>
+        <input value="{{transportForm.seat}}" data-field="seat" placeholder="03车 08A" bindinput="onTransportInput" />
+      </view>
+      <view class="field">
+        <view class="label">票价</view>
+        <input type="digit" value="{{transportForm.price}}" data-field="price" placeholder="139" bindinput="onTransportInput" />
+      </view>
+    </view>
+    <view class="field">
+      <view class="label">备注</view>
+      <input value="{{transportForm.note}}" data-field="note" placeholder="例如提前取票、靠窗座" bindinput="onTransportInput" />
+    </view>
+    <button class="primary-btn" bindtap="saveTransport">{{editingTransportId ? '保存修改' : '添加交通卡'}}</button>
   </view>
 
   <view class="action-row">

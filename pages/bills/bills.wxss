@@ -27,6 +27,16 @@
   background: #fff9f0;
 }
 
+.warning-card {
+  margin-top: 18rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 20rpx;
+  background: #fff1f2;
+  color: #b2485d;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
 .summary-item {
   text-align: center;
 }
@@ -106,8 +116,44 @@ input,
   font-weight: 900;
 }
 
+.bill-meta {
+  margin-top: 6rpx;
+  color: #89919e;
+  font-size: 23rpx;
+}
+
+.bill-right {
+  min-width: 190rpx;
+  text-align: right;
+}
+
 .bill-money {
   color: #4a9fe8;
   font-size: 32rpx;
   font-weight: 900;
+}
+
+.bill-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10rpx;
+  margin-top: 12rpx;
+}
+
+.mini-btn {
+  min-width: 74rpx;
+  height: 50rpx;
+  line-height: 50rpx;
+  margin: 0;
+  padding: 0 12rpx;
+  border-radius: 999rpx;
+  background: #eef7ff;
+  color: #4a9fe8;
+  font-size: 22rpx;
+  font-weight: 900;
+}
+
+.mini-btn.danger {
+  background: #fff1f2;
+  color: #d45b5b;
 }

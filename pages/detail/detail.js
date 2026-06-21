@@ -3,7 +3,20 @@ const app = getApp();
 Page({
   data: {
     detail: null,
-    tripId: ''
+    tripId: '',
+    transportForm: {
+      role: '去程',
+      type: '高铁',
+      code: '',
+      from: '',
+      to: '',
+      departTime: '',
+      arriveTime: '',
+      seat: '',
+      price: '',
+      note: ''
+    },
+    editingTransportId: ''
   },
 
   onLoad(options) {
@@ -50,6 +63,107 @@ Page({
     wx.navigateTo({
       url: `/pages/favorites/favorites?id=${this.data.detail.trip.id}`
     });
+  },
+
+  openModule(event) {
+    const id = event.currentTarget.dataset.id;
+    const tripId = this.data.detail.trip.id;
+    if (id === 'route') {
+      this.openRoute();
+      return;
+    }
+    if (id === 'bill') {
+      this.openBills();
+      return;
+    }
+    if (id === 'packing') {
+      this.openChecklist();
+      return;
+    }
+    if (id === 'favorite') {
+      this.openFavorites();
+      return;
+    }
+    if (id === 'transport' || id === 'memo') {
+      wx.navigateTo({
+        url: `/pages/detail/detail?id=${tripId}`
+      });
+    }
+  },
+
+  onTransportInput(event) {
+    const field = event.currentTarget.dataset.field;
+    this.setData({
+      transportForm: {
+        ...this.data.transportForm,
+        [field]: event.detail.value
+      }
+    });
+  },
+
+  editTransport(event) {
+    const id = event.currentTarget.dataset.id;
+    const card = this.data.detail.transportCards.find(item => item.id === id);
+    if (!card) {
+      return;
+    }
+    this.setData({
+      editingTransportId: id,
+      transportForm: {
+        role: card.role,
+        type: card.type,
+        code: card.code,
+        from: card.from,
+        to: card.to,
+        departTime: card.departTime,
+        arriveTime: card.arriveTime,
+        seat: card.seat,
+        price: String(card.price || ''),
+        note: card.note || ''
+      }
+    });
+  },
+
+  saveTransport() {
+    const form = this.data.transportForm;
+    if (!form.code.trim()) {
+      wx.showToast({
+        title: '请填写班次号',
+        icon: 'none'
+      });
+      return;
+    }
+    const isGeneratedCard = this.data.editingTransportId === `${this.data.detail.trip.id}-transport-main`;
+    if (this.data.editingTransportId && !isGeneratedCard) {
+      app.updateTransportCard(this.data.editingTransportId, form);
+    } else {
+      app.addTransportCard(this.data.detail.trip.id, form);
+    }
+    this.setData({
+      editingTransportId: '',
+      transportForm: {
+        role: '去程',
+        type: '高铁',
+        code: '',
+        from: '',
+        to: '',
+        departTime: '',
+        arriveTime: '',
+        seat: '',
+        price: '',
+        note: ''
+      }
+    });
+    this.loadDetail();
+    wx.showToast({
+      title: '交通已保存',
+      icon: 'success'
+    });
+  },
+
+  deleteTransport(event) {
+    app.removeTransportCard(event.currentTarget.dataset.id);
+    this.loadDetail();
   },
 
   addMemo() {

@@ -69,6 +69,20 @@
       </button>
     </view>
     <view wx:if="{{routeError}}" class="route-error">{{routeError}}</view>
+    <view class="map-preview">
+      <map
+        class="route-map"
+        latitude="{{mapPreview.latitude}}"
+        longitude="{{mapPreview.longitude}}"
+        scale="{{mapPreview.scale}}"
+        markers="{{mapPreview.markers}}"
+        polyline="{{mapPreview.polyline}}"
+        enable-scroll="{{false}}"
+        enable-zoom="{{false}}"
+        show-location="{{false}}"
+      ></map>
+      <view class="map-caption">地图预览会跟随景点顺序和路线策略刷新</view>
+    </view>
     <view class="route-metrics">
       <view class="metric">
         <view class="metric-num">{{routePlan.totalText}}</view>

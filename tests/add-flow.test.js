@@ -228,6 +228,52 @@ test('景点上移下移后会保存顺序并重新估算时间轴', () => {
   assert.strictEqual(Array.isArray(timeline.conflicts), true);
 });
 
+test('预设行程手动调整和收藏加入会持久保存', () => {
+  const env = loadMiniProgram();
+
+  const movedTrip = env.app.moveTripSpot('shanghai', 3, -3);
+  const savedTrip = env.app.getTripById('shanghai');
+  const detail = env.app.getTripDetail('shanghai');
+
+  assert.strictEqual(movedTrip.routeMode, 'manual');
+  assert.strictEqual(savedTrip.attractions[0].name, '陆家嘴');
+  assert.strictEqual(detail.routePlan.strategyId, 'manual');
+  assert.ok(detail.routePlan.routeNames.startsWith('陆家嘴'));
+
+  const place = env.app.addFavoritePlace({
+    name: '上海博物馆',
+    city: '上海',
+    tag: '博物馆',
+    budget: 0,
+    stayMinutes: 90,
+    bestPeriod: '下午',
+    note: '适合雨天备用'
+  });
+  env.app.addFavoritePlaceToTrip(place.id, 'shanghai');
+
+  assert.strictEqual(env.app.getTripById('shanghai').attractions.some(item => item.name === '上海博物馆'), true);
+});
+
+test('详情页模块卡片会跳转到对应功能页', () => {
+  const env = loadMiniProgram();
+  const detailConfig = env.run('pages/detail/detail.js');
+  const page = createPage(detailConfig, { id: 'shanghai' });
+  page.triggerLoad();
+  page.triggerShow();
+
+  page.openModule({ currentTarget: { dataset: { id: 'route' } } });
+  page.openModule({ currentTarget: { dataset: { id: 'bill' } } });
+  page.openModule({ currentTarget: { dataset: { id: 'packing' } } });
+  page.openModule({ currentTarget: { dataset: { id: 'favorite' } } });
+
+  assert.deepStrictEqual(env.navCalls.slice(-4), [
+    { type: 'switchTab', url: '/pages/plan/plan' },
+    { type: 'switchTab', url: '/pages/bills/bills' },
+    { type: 'switchTab', url: '/pages/checklist/checklist' },
+    { type: 'navigateTo', url: '/pages/favorites/favorites?id=shanghai' }
+  ]);
+});
+
 test('账单统计会区分预算和实际花费', () => {
   const env = loadMiniProgram();
   const trip = env.app.addTrip({ city: '南京', dateRange: '8月5日', note: '' });
@@ -241,6 +287,34 @@ test('账单统计会区分预算和实际花费', () => {
   assert.strictEqual(summary.actualTotal, 207);
   assert.strictEqual(summary.leftBudget, 93);
   assert.strictEqual(summary.categories.find(item => item.name === '交通').actual, 139);
+});
+
+test('账单可以编辑删除并给出超支提醒', () => {
+  const env = loadMiniProgram();
+  const trip = env.app.addTrip({ city: '南京', dateRange: '8月5日', note: '' });
+
+  env.app.addBill(trip.id, { title: '餐饮预算', category: '餐饮', amount: 100, type: 'budget' });
+  const bill = env.app.addBill(trip.id, {
+    title: '午餐',
+    category: '餐饮',
+    amount: 88,
+    type: 'actual',
+    date: '8月5日',
+    placeName: '夫子庙',
+    payment: '微信',
+    note: '鸭血粉丝汤'
+  });
+
+  env.app.updateBill(bill.id, { amount: 138, payment: '支付宝' });
+  const summary = env.app.getBillSummary(trip.id);
+
+  assert.strictEqual(summary.actualTotal, 138);
+  assert.strictEqual(summary.bills[1].placeName, '夫子庙');
+  assert.strictEqual(summary.bills[1].payment, '支付宝');
+  assert.ok(summary.warnings.some(item => item.includes('餐饮已超预算 ¥38')));
+
+  env.app.removeBill(bill.id);
+  assert.strictEqual(env.app.getBillSummary(trip.id).actualTotal, 0);
 });
 
 test('收藏地点可以一键加入当前行程', () => {
@@ -262,6 +336,98 @@ test('收藏地点可以一键加入当前行程', () => {
   assert.strictEqual(env.app.getFavoritePlaces().find(item => item.id === place.id).status, '已安排');
 });
 
+test('收藏夹支持筛选新增编辑和删除地点', () => {
+  const env = loadMiniProgram();
+
+  const place = env.app.addFavoritePlace({
+    name: '先锋书店',
+    city: '南京',
+    tag: '拍照点',
+    budget: 30,
+    stayMinutes: 60,
+    bestPeriod: '下午',
+    note: '适合拍照和买明信片'
+  });
+  env.app.updateFavoritePlace(place.id, { tag: '美食', budget: 45 });
+
+  assert.strictEqual(env.app.getFavoritePlaces({ filter: '美食' }).some(item => item.id === place.id), true);
+  assert.strictEqual(env.app.getFavoritePlaces().find(item => item.id === place.id).budget, 45);
+
+  env.app.removeFavoritePlace(place.id);
+  assert.strictEqual(env.app.getFavoritePlaces().some(item => item.id === place.id), false);
+});
+
+test('结构化交通卡片支持新增编辑并出现在详情页', () => {
+  const env = loadMiniProgram();
+
+  const go = env.app.addTransportCard('shanghai', {
+    role: '去程',
+    type: '高铁',
+    code: 'G7012',
+    from: '南京南',
+    to: '上海虹桥',
+    departTime: '08:20',
+    arriveTime: '10:05',
+    seat: '03车 08A',
+    price: 139,
+    remindMinutes: 60,
+    note: '提前取票'
+  });
+  env.app.addTransportCard('shanghai', {
+    role: '返程',
+    type: '高铁',
+    code: 'G7045',
+    from: '上海虹桥',
+    to: '南京南',
+    departTime: '19:10',
+    arriveTime: '20:58',
+    seat: '05车 12F',
+    price: 139
+  });
+  env.app.updateTransportCard(go.id, { seat: '02车 06A', price: 149 });
+
+  const cards = env.app.getTripDetail('shanghai').transportCards;
+
+  assert.strictEqual(cards.length, 2);
+  assert.strictEqual(cards[0].role, '去程');
+  assert.strictEqual(cards[0].seat, '02车 06A');
+  assert.strictEqual(cards[0].price, 149);
+  assert.strictEqual(cards[1].code, 'G7045');
+});
+
+test('编辑默认交通卡会保存成结构化交通记录', () => {
+  const env = loadMiniProgram();
+  const detailConfig = env.run('pages/detail/detail.js');
+  const page = createPage(detailConfig, { id: 'hangzhou' });
+  page.triggerLoad();
+  page.triggerShow();
+
+  assert.strictEqual(page.data.detail.transportCards[0].generated, true);
+
+  page.editTransport({ currentTarget: { dataset: { id: 'hangzhou-transport-main' } } });
+  page.onTransportInput({ currentTarget: { dataset: { field: 'seat' } }, detail: { value: '06车 09A' } });
+  page.saveTransport();
+
+  const cards = env.app.getSavedTransportCards('hangzhou');
+
+  assert.strictEqual(cards.length, 1);
+  assert.strictEqual(cards[0].seat, '06车 09A');
+  assert.strictEqual(env.app.getTripDetail('hangzhou').transportCards[0].generated, undefined);
+});
+
+test('路线页会生成地图 marker 和路线预览', () => {
+  const env = loadMiniProgram();
+  const planConfig = env.run('pages/plan/plan.js');
+  const page = createPage(planConfig, { id: 'shanghai' });
+  page.triggerLoad();
+
+  assert.strictEqual(page.data.mapPreview.markers.length, page.data.routeSpots.length);
+  assert.strictEqual(page.data.mapPreview.markers[0].callout.content.includes('1.'), true);
+  assert.strictEqual(page.data.mapPreview.polyline[0].points.length, page.data.routeSpots.length);
+  assert.ok(page.data.mapPreview.latitude);
+  assert.ok(page.data.mapPreview.longitude);
+});
+
 test('旅行详情会聚合路线、交通、备忘、账单和清单入口', () => {
   const env = loadMiniProgram();
   const trip = env.app.addTrip({
@@ -277,7 +443,8 @@ test('旅行详情会聚合路线、交通、备忘、账单和清单入口', ()
 
   const detail = env.app.getTripDetail(trip.id);
 
-  assert.strictEqual(detail.modules.length, 5);
+  assert.strictEqual(detail.modules.length, 6);
+  assert.strictEqual(detail.modules.some(item => item.id === 'favorite'), true);
   assert.strictEqual(detail.transportCards[0].code, 'G7012');
   assert.strictEqual(detail.memoSummary.total, 1);
   assert.strictEqual(detail.billSummary.actualTotal, 80);

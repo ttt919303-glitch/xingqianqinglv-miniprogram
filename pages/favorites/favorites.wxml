@@ -8,6 +8,51 @@
     </view>
   </view>
 
+  <view class="filter-tabs">
+    <view wx:for="{{filters}}" wx:key="*this" class="filter-tab {{selectedFilter === item ? 'active' : ''}}" bindtap="chooseFilter" data-filter="{{item}}">
+      {{item}}
+    </view>
+  </view>
+
+  <view class="form-card card">
+    <view class="form-title">{{editingPlaceId ? '编辑收藏地点' : '新增收藏地点'}}</view>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">地点</view>
+        <input value="{{form.name}}" data-field="name" placeholder="例如：上海博物馆" bindinput="onInput" />
+      </view>
+      <view class="field">
+        <view class="label">城市</view>
+        <input value="{{form.city}}" data-field="city" placeholder="上海" bindinput="onInput" />
+      </view>
+    </view>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">标签</view>
+        <input value="{{form.tag}}" data-field="tag" placeholder="美食 / 酒店 / 拍照点" bindinput="onInput" />
+      </view>
+      <view class="field">
+        <view class="label">预算</view>
+        <input type="digit" value="{{form.budget}}" data-field="budget" placeholder="80" bindinput="onInput" />
+      </view>
+    </view>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">停留</view>
+        <input type="number" value="{{form.stayMinutes}}" data-field="stayMinutes" placeholder="90" bindinput="onInput" />
+      </view>
+      <view class="field">
+        <view class="label">时段</view>
+        <input value="{{form.bestPeriod}}" data-field="bestPeriod" placeholder="上午 / 下午 / 晚上" bindinput="onInput" />
+      </view>
+    </view>
+    <view class="field">
+      <view class="label">备注</view>
+      <input value="{{form.note}}" data-field="note" placeholder="例如需要预约、适合拍照" bindinput="onInput" />
+    </view>
+    <button class="primary-btn" bindtap="savePlace">{{editingPlaceId ? '保存修改' : '加入收藏夹'}}</button>
+  </view>
+
   <view wx:for="{{places}}" wx:key="id" class="place-card card">
     <view class="postmark">{{item.status}}</view>
     <view class="place-head">
@@ -19,6 +64,10 @@
     </view>
     <view class="place-note">{{item.note}}</view>
     <view class="place-meta">建议停留 {{item.stayMinutes}} 分钟</view>
-    <button class="primary-btn" bindtap="addToTrip" data-id="{{item.id}}">加入当前行程</button>
+    <view class="place-actions">
+      <button class="primary-btn" bindtap="addToTrip" data-id="{{item.id}}">加入当前行程</button>
+      <button class="ghost-btn small" bindtap="editPlace" data-id="{{item.id}}">编辑</button>
+      <button class="ghost-btn small danger" bindtap="deletePlace" data-id="{{item.id}}">删除</button>
+    </view>
   </view>
 </view>
