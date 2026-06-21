@@ -209,6 +209,81 @@ test('行程计划页切换策略会刷新推荐路线', () => {
   assert.ok(page.data.routeSteps.length > 0);
 });
 
+test('景点上移下移后会保存顺序并重新估算时间轴', () => {
+  const env = loadMiniProgram();
+  const trip = env.app.addTrip({
+    city: '南京',
+    dateRange: '8月5日',
+    note: '',
+    attractionsText: '09:00 夫子庙 - 上午逛秦淮河\n11:30 老门东 - 午餐\n14:00 中山陵 - 下午游览'
+  });
+
+  const movedTrip = env.app.moveTripSpot(trip.id, 2, -1);
+  const timeline = env.app.buildEditableTimeline(movedTrip);
+
+  assert.strictEqual(JSON.stringify(movedTrip.attractions.map(item => item.name)), JSON.stringify(['夫子庙', '中山陵', '老门东']));
+  assert.strictEqual(timeline.items[0].timeRange, '09:00 - 10:30');
+  assert.ok(timeline.items[1].startTime >= '10:');
+  assert.ok(timeline.summary.includes('预计'));
+  assert.strictEqual(Array.isArray(timeline.conflicts), true);
+});
+
+test('账单统计会区分预算和实际花费', () => {
+  const env = loadMiniProgram();
+  const trip = env.app.addTrip({ city: '南京', dateRange: '8月5日', note: '' });
+
+  env.app.addBill(trip.id, { title: '高铁票', category: '交通', amount: 139, type: 'actual' });
+  env.app.addBill(trip.id, { title: '酒店预算', category: '住宿', amount: 300, type: 'budget' });
+  env.app.addBill(trip.id, { title: '午餐', category: '餐饮', amount: 68, type: 'actual' });
+  const summary = env.app.getBillSummary(trip.id);
+
+  assert.strictEqual(summary.budgetTotal, 300);
+  assert.strictEqual(summary.actualTotal, 207);
+  assert.strictEqual(summary.leftBudget, 93);
+  assert.strictEqual(summary.categories.find(item => item.name === '交通').actual, 139);
+});
+
+test('收藏地点可以一键加入当前行程', () => {
+  const env = loadMiniProgram();
+  const trip = env.app.addTrip({ city: '南京', dateRange: '8月5日', note: '', attractionsText: '09:00 夫子庙' });
+
+  const place = env.app.addFavoritePlace({
+    name: '南京博物院',
+    city: '南京',
+    tag: '博物馆',
+    budget: 0,
+    stayMinutes: 120,
+    bestPeriod: '下午',
+    note: '需要提前预约'
+  });
+  const nextTrip = env.app.addFavoritePlaceToTrip(place.id, trip.id);
+
+  assert.strictEqual(nextTrip.attractions.some(item => item.name === '南京博物院'), true);
+  assert.strictEqual(env.app.getFavoritePlaces().find(item => item.id === place.id).status, '已安排');
+});
+
+test('旅行详情会聚合路线、交通、备忘、账单和清单入口', () => {
+  const env = loadMiniProgram();
+  const trip = env.app.addTrip({
+    city: '南京',
+    dateRange: '8月5日',
+    note: '',
+    traffic: '高铁 G7012',
+    trafficTime: '08:20 - 10:05',
+    attractionsText: '09:00 夫子庙'
+  });
+  env.app.addMemo(trip.id, { content: '预约博物馆', category: '游玩' });
+  env.app.addBill(trip.id, { title: '门票', category: '门票', amount: 80, type: 'actual' });
+
+  const detail = env.app.getTripDetail(trip.id);
+
+  assert.strictEqual(detail.modules.length, 5);
+  assert.strictEqual(detail.transportCards[0].code, 'G7012');
+  assert.strictEqual(detail.memoSummary.total, 1);
+  assert.strictEqual(detail.billSummary.actualTotal, 80);
+  assert.ok(detail.packingSummary.total > 0);
+});
+
 test('腾讯地图请求会带 key 并按路线段选择接口', () => {
   const env = loadMiniProgram();
   const trip = {
@@ -256,7 +331,7 @@ test('分类详情加号会记住当前新增分类', () => {
 
   assert.strictEqual(env.storage.preferredCategoryId, 'medicine');
   assert.deepStrictEqual(env.navCalls.slice(-1), [
-    { type: 'switchTab', url: '/pages/add/add' }
+    { type: 'navigateTo', url: '/pages/add/add' }
   ]);
 });
 

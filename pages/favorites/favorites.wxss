@@ -1,0 +1,77 @@
+.trip-tabs {
+  display: flex;
+  gap: 16rpx;
+  margin: 26rpx 0;
+  overflow-x: auto;
+}
+
+.trip-tab {
+  flex: 0 0 auto;
+  padding: 14rpx 26rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  color: #7b8492;
+  font-weight: 800;
+}
+
+.trip-tab.active {
+  background: #4a9fe8;
+  color: #ffffff;
+}
+
+.place-card {
+  position: relative;
+  margin-bottom: 24rpx;
+  padding: 34rpx 28rpx 28rpx;
+  background: #fff9f0;
+  overflow: hidden;
+}
+
+.postmark {
+  position: absolute;
+  right: 24rpx;
+  top: 20rpx;
+  padding: 8rpx 16rpx;
+  border: 2rpx dashed #ffb6b9;
+  border-radius: 999rpx;
+  color: #c95b6a;
+  font-size: 22rpx;
+  font-weight: 900;
+  transform: rotate(4deg);
+}
+
+.place-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 24rpx;
+  padding-right: 120rpx;
+}
+
+.place-name {
+  color: #20242a;
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
+.budget {
+  color: #4a9fe8;
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.place-note {
+  margin-top: 18rpx;
+  color: #626b78;
+  line-height: 1.55;
+}
+
+.place-meta {
+  display: inline-block;
+  margin: 18rpx 0 22rpx;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #e7f7f4;
+  color: #269384;
+  font-size: 23rpx;
+  font-weight: 800;
+}

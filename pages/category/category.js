@@ -95,7 +95,7 @@ Page({
 
   addItem() {
     wx.setStorageSync('preferredCategoryId', this.data.categoryId);
-    wx.switchTab({
+    wx.navigateTo({
       url: '/pages/add/add'
     });
   },

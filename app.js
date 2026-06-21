@@ -488,7 +488,9 @@ App({
 
   buildRoutePlan(trip, strategyId = 'time') {
     const strategies = this.getRouteStrategies();
-    const strategy = strategies.find(item => item.id === strategyId) || strategies[0];
+    const strategy = strategyId === 'manual'
+      ? { id: 'manual', name: '手动顺序' }
+      : (strategies.find(item => item.id === strategyId) || strategies[0]);
     const attractions = this.normalizeAttractions(trip.attractions || []);
     let orderedAttractions = attractions.slice();
 
@@ -536,9 +538,9 @@ App({
 
   addTrip(data) {
     const customTrips = wx.getStorageSync('customTrips') || [];
-    const city = data.city.trim();
-    const dateRange = data.dateRange.trim() || '待定日期';
-    const note = data.note.trim();
+    const city = (data.city || '').trim();
+    const dateRange = (data.dateRange || '').trim() || '待定日期';
+    const note = (data.note || '').trim();
     const attractions = this.parseAttractions(data.attractionsText);
     const routePlan = this.buildRoutePlan({ city, attractions }, 'time');
     const newTrip = {
@@ -559,6 +561,95 @@ App({
     };
     wx.setStorageSync('customTrips', customTrips.concat(newTrip));
     return newTrip;
+  },
+
+  getTripById(id) {
+    return this.getTrips().find(item => item.id === id) || this.getTrips()[0];
+  },
+
+  updateCustomTrip(id, patch) {
+    const customTrips = wx.getStorageSync('customTrips') || [];
+    const nextTrips = customTrips.map(item => {
+      if (item.id !== id) {
+        return item;
+      }
+      return {
+        ...item,
+        ...patch
+      };
+    });
+    wx.setStorageSync('customTrips', nextTrips);
+    return nextTrips.find(item => item.id === id) || this.getTripById(id);
+  },
+
+  moveTripSpot(tripId, index, delta) {
+    const trip = this.getTripById(tripId);
+    const attractions = (trip.attractions || []).slice();
+    const fromIndex = Number(index);
+    const toIndex = fromIndex + Number(delta);
+    if (fromIndex < 0 || fromIndex >= attractions.length || toIndex < 0 || toIndex >= attractions.length) {
+      return trip;
+    }
+    const moved = attractions.splice(fromIndex, 1)[0];
+    attractions.splice(toIndex, 0, moved);
+    const routePlan = this.buildRoutePlan({ ...trip, attractions }, 'manual');
+    const routeHint = `${routePlan.summary} 已按手动顺序重新估算。`;
+    if (trip.id && trip.id.startsWith('custom-')) {
+      return this.updateCustomTrip(tripId, { attractions, routePlan, routeHint });
+    }
+    return {
+      ...trip,
+      attractions,
+      routePlan,
+      routeHint
+    };
+  },
+
+  addMinutesToTime(time, minutes) {
+    const base = this.parseTimeToMinutes(time);
+    const next = base + Number(minutes || 0);
+    const hours = Math.floor(next / 60) % 24;
+    const rest = next % 60;
+    return `${String(hours).padStart(2, '0')}:${String(rest).padStart(2, '0')}`;
+  },
+
+  buildEditableTimeline(trip) {
+    const normalized = this.normalizeAttractions(trip.attractions || []);
+    let cursor = normalized[0] ? normalized[0].time : '09:00';
+    const items = normalized.map((item, index) => {
+      const startTime = index === 0 ? (item.time || cursor) : cursor;
+      const endTime = this.addMinutesToTime(startTime, item.stayMinutes);
+      const next = normalized[index + 1];
+      const transit = next ? this.estimateTransit(item, next) : null;
+      const nextStartTime = transit ? this.addMinutesToTime(endTime, transit.minutes) : endTime;
+      cursor = nextStartTime;
+      return {
+        ...item,
+        startTime,
+        endTime,
+        timeRange: `${startTime} - ${endTime}`,
+        transportToNext: transit ? {
+          mode: transit.mode,
+          minutes: transit.minutes,
+          tip: transit.tip
+        } : null
+      };
+    });
+    const routePlan = this.buildRoutePlan({ ...trip, attractions: normalized }, 'manual');
+    const endTime = items.length ? items[items.length - 1].endTime : '待定';
+    const conflicts = [];
+    if (routePlan.totalMinutes > 10 * 60) {
+      conflicts.push('这天安排偏满，建议减少 1 个景点或缩短停留时间。');
+    }
+    if (routePlan.segments.some(item => item.minutes >= 35)) {
+      conflicts.push('存在距离较远的景点，建议确认交通方式或调整顺序。');
+    }
+    return {
+      items,
+      endTime,
+      conflicts,
+      summary: `预计 ${endTime} 结束，游玩 ${this.formatMinutes(routePlan.stayMinutes)}，交通约${routePlan.transitMinutes}分钟。`
+    };
   },
 
   parseAttractions(text) {
@@ -586,6 +677,184 @@ App({
         note: parts[1] || '按当天体力和交通情况灵活调整'
       };
     });
+  },
+
+  getBills(tripId) {
+    const bills = wx.getStorageSync('tripBills') || [];
+    return bills.filter(item => item.tripId === tripId);
+  },
+
+  addBill(tripId, data) {
+    const bills = wx.getStorageSync('tripBills') || [];
+    const bill = {
+      id: `bill-${Date.now()}-${bills.length}`,
+      tripId,
+      title: (data.title || '旅行花费').trim(),
+      category: data.category || '其他',
+      amount: Number(data.amount) || 0,
+      type: data.type === 'budget' ? 'budget' : 'actual',
+      date: data.date || '',
+      placeName: data.placeName || '',
+      note: data.note || '',
+      paid: data.paid !== false
+    };
+    wx.setStorageSync('tripBills', bills.concat(bill));
+    return bill;
+  },
+
+  getBillSummary(tripId) {
+    const bills = this.getBills(tripId);
+    const names = ['交通', '住宿', '餐饮', '门票', '购物', '其他'];
+    const budgetTotal = bills.filter(item => item.type === 'budget').reduce((sum, item) => sum + item.amount, 0);
+    const actualTotal = bills.filter(item => item.type !== 'budget').reduce((sum, item) => sum + item.amount, 0);
+    const categories = names.map(name => {
+      const related = bills.filter(item => item.category === name);
+      return {
+        name,
+        budget: related.filter(item => item.type === 'budget').reduce((sum, item) => sum + item.amount, 0),
+        actual: related.filter(item => item.type !== 'budget').reduce((sum, item) => sum + item.amount, 0)
+      };
+    }).filter(item => item.budget || item.actual);
+    return {
+      budgetTotal,
+      actualTotal,
+      leftBudget: budgetTotal - actualTotal,
+      categories,
+      bills
+    };
+  },
+
+  getFavoritePlaces() {
+    const saved = wx.getStorageSync('favoritePlaces');
+    if (saved && saved.length) {
+      return saved;
+    }
+    return [
+      { id: 'fav-fuzimiao', name: '夫子庙', city: '南京', tag: '夜景', budget: 80, stayMinutes: 90, bestPeriod: '晚上', status: '想去', note: '秦淮河边适合散步拍照' },
+      { id: 'fav-museum', name: '南京博物院', city: '南京', tag: '博物馆', budget: 0, stayMinutes: 120, bestPeriod: '下午', status: '想去', note: '建议提前预约' },
+      { id: 'fav-xinjiekou', name: '新街口', city: '南京', tag: '美食', budget: 120, stayMinutes: 90, bestPeriod: '晚上', status: '想去', note: '晚餐和购物方便' }
+    ];
+  },
+
+  addFavoritePlace(data) {
+    const places = this.getFavoritePlaces();
+    const place = {
+      id: `fav-${Date.now()}-${places.length}`,
+      name: (data.name || '').trim(),
+      city: data.city || '',
+      tag: data.tag || '想去',
+      budget: Number(data.budget) || 0,
+      stayMinutes: Number(data.stayMinutes) || 80,
+      bestPeriod: data.bestPeriod || '灵活',
+      status: data.status || '想去',
+      note: data.note || ''
+    };
+    wx.setStorageSync('favoritePlaces', places.concat(place));
+    return place;
+  },
+
+  addFavoritePlaceToTrip(placeId, tripId) {
+    const places = this.getFavoritePlaces();
+    const place = places.find(item => item.id === placeId);
+    const trip = this.getTripById(tripId);
+    if (!place || !trip) {
+      return trip;
+    }
+    const attractions = (trip.attractions || []).concat({
+      time: this.addMinutesToTime('09:00', (trip.attractions || []).length * 150),
+      name: place.name,
+      note: place.note || `${place.tag} · 建议停留 ${place.stayMinutes} 分钟`,
+      stayMinutes: place.stayMinutes,
+      bestPeriod: place.bestPeriod
+    });
+    const routePlan = this.buildRoutePlan({ ...trip, attractions }, 'time');
+    const nextPlaces = places.map(item => item.id === placeId ? { ...item, status: '已安排' } : item);
+    wx.setStorageSync('favoritePlaces', nextPlaces);
+    if (trip.id && trip.id.startsWith('custom-')) {
+      return this.updateCustomTrip(tripId, { attractions, routePlan, routeHint: `${routePlan.summary} 已加入收藏地点。` });
+    }
+    return {
+      ...trip,
+      attractions,
+      routePlan
+    };
+  },
+
+  getMemos(tripId) {
+    const memos = wx.getStorageSync('tripMemos') || [];
+    return memos.filter(item => item.tripId === tripId);
+  },
+
+  addMemo(tripId, data) {
+    const memos = wx.getStorageSync('tripMemos') || [];
+    const memo = {
+      id: `memo-${Date.now()}-${memos.length}`,
+      tripId,
+      content: (data.content || '').trim(),
+      category: data.category || '重要事项',
+      date: data.date || '',
+      remindTime: data.remindTime || '',
+      placeName: data.placeName || '',
+      done: Boolean(data.done)
+    };
+    wx.setStorageSync('tripMemos', memos.concat(memo));
+    return memo;
+  },
+
+  getMemoSummary(tripId) {
+    const memos = this.getMemos(tripId);
+    const done = memos.filter(item => item.done).length;
+    return {
+      total: memos.length,
+      done,
+      undone: memos.length - done,
+      memos
+    };
+  },
+
+  getTransportCards(trip) {
+    const text = trip.traffic || '自定义交通';
+    const matched = text.match(/(飞机|航班|高铁|动车|火车|大巴|自驾)?\s*([A-Z]{1,3}\d{2,5}|G\d{1,5}|D\d{1,5}|C\d{1,5})?/i);
+    const type = matched && matched[1] ? matched[1] : (text.includes('高铁') || text.includes('动车') ? '高铁' : '交通');
+    const code = matched && matched[2] ? matched[2] : text;
+    const parts = String(trip.trafficTime || '').split(/\s*-\s*/);
+    return [{
+      id: `${trip.id}-transport-main`,
+      type,
+      icon: type.includes('飞机') || type.includes('航班') ? '✈️' : type.includes('自驾') ? '🚗' : '🚄',
+      code,
+      from: trip.from || '出发地',
+      to: trip.city || '目的地',
+      departTime: parts[0] || '待定',
+      arriveTime: parts[1] || '待定',
+      seat: trip.seat || '座位待填',
+      price: Number(trip.price) || 0,
+      remindText: '出发前 60 分钟提醒'
+    }];
+  },
+
+  getTripDetail(tripId) {
+    const trip = this.getTripById(tripId);
+    const routePlan = this.buildRoutePlan(trip, 'time');
+    const billSummary = this.getBillSummary(trip.id);
+    const memoSummary = this.getMemoSummary(trip.id);
+    const packingSummary = this.getOverallProgress();
+    const transportCards = this.getTransportCards(trip);
+    return {
+      trip,
+      routePlan,
+      transportCards,
+      memoSummary,
+      billSummary,
+      packingSummary,
+      modules: [
+        { id: 'route', name: '行程路线', desc: routePlan.totalText, url: '/pages/plan/plan' },
+        { id: 'transport', name: '交通卡片', desc: transportCards[0].code, url: `/pages/detail/detail?id=${trip.id}` },
+        { id: 'memo', name: '旅行备忘', desc: `${memoSummary.undone} 条待办`, url: `/pages/detail/detail?id=${trip.id}` },
+        { id: 'bill', name: '账单预算', desc: `已花费 ${billSummary.actualTotal}`, url: `/pages/bills/bills?id=${trip.id}` },
+        { id: 'packing', name: '行李清单', desc: `${packingSummary.packed}/${packingSummary.total}`, url: '/pages/checklist/checklist' }
+      ]
+    };
   },
 
   addItem(data, options = {}) {
@@ -647,7 +916,11 @@ App({
   resetUserData() {
     wx.setStorageSync('customItems', []);
     wx.setStorageSync('customTrips', []);
+    wx.setStorageSync('tripBills', []);
+    wx.setStorageSync('tripMemos', []);
+    wx.setStorageSync('favoritePlaces', []);
     wx.setStorageSync('preferredCategoryId', '');
+    wx.setStorageSync('selectedTripId', '');
     this.setPackedIds(this.getDefaultPackedIds());
   }
 });

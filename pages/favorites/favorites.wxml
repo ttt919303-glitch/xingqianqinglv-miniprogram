@@ -1,0 +1,24 @@
+<view class="page favorites-page">
+  <view class="title">地点收藏夹</view>
+  <view class="subtitle">把想去、美食、酒店和拍照点整理成旅行素材库</view>
+
+  <view class="trip-tabs">
+    <view wx:for="{{trips}}" wx:key="id" class="trip-tab {{tripId === item.id ? 'active' : ''}}" bindtap="chooseTrip" data-id="{{item.id}}">
+      {{item.city}}
+    </view>
+  </view>
+
+  <view wx:for="{{places}}" wx:key="id" class="place-card card">
+    <view class="postmark">{{item.status}}</view>
+    <view class="place-head">
+      <view>
+        <view class="place-name">{{item.name}}</view>
+        <view class="subtitle">{{item.city}} · {{item.tag}} · {{item.bestPeriod}}</view>
+      </view>
+      <view class="budget">¥{{item.budget}}</view>
+    </view>
+    <view class="place-note">{{item.note}}</view>
+    <view class="place-meta">建议停留 {{item.stayMinutes}} 分钟</view>
+    <button class="primary-btn" bindtap="addToTrip" data-id="{{item.id}}">加入当前行程</button>
+  </view>
+</view>

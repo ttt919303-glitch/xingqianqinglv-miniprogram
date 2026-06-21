@@ -37,8 +37,17 @@
         <input class="qa-duration-input" value="{{duration}}" placeholder="例如：1小时30分" bindinput="onDurationInput" />
       </view>
       <view class="field">
-        <view class="label">当天景点</view>
-        <textarea class="qa-attractions-input" value="{{attractionsText}}" placeholder="每行一个景点，例如：&#10;09:30 夫子庙 - 上午先逛秦淮河&#10;14:00 中山陵 - 下午避开人流" bindinput="onAttractionsInput"></textarea>
+        <view class="label">一键导入地点</view>
+        <textarea class="qa-attractions-input" value="{{attractionsText}}" placeholder="可粘贴朋友发来的行程，每行一个地点，例如：&#10;09:30 夫子庙 - 上午先逛秦淮河&#10;14:00 中山陵 - 下午避开人流" bindinput="onAttractionsInput"></textarea>
+      </view>
+      <view wx:if="{{importedSpots.length}}" class="spot-preview">
+        <view wx:for="{{importedSpots}}" wx:key="name" class="spot-chip">
+          <view class="spot-time">{{item.time}}</view>
+          <view>
+            <view class="spot-name">{{item.name}}</view>
+            <view class="spot-note">{{item.note}}</view>
+          </view>
+        </view>
       </view>
     </block>
     <view class="field">

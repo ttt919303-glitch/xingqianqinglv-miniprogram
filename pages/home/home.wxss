@@ -359,3 +359,31 @@
 .home-page .section-title {
   margin-left: 32rpx;
 }
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+  margin: 0 32rpx 28rpx;
+}
+
+.quick-card {
+  padding: 26rpx;
+}
+
+.quick-icon {
+  font-size: 42rpx;
+  margin-bottom: 14rpx;
+}
+
+.quick-title {
+  color: #20242a;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.quick-desc {
+  margin-top: 8rpx;
+  color: #7b8492;
+  font-size: 24rpx;
+}

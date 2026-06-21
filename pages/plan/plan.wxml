@@ -10,10 +10,13 @@
       <view class="title">{{trip.city}}</view>
       <view class="subtitle">{{trip.dateRange}}</view>
     </view>
-    <view class="date-badge">{{trip.daysLeft}}天</view>
+    <view class="hero-actions">
+      <view class="date-badge">{{trip.daysLeft}}天</view>
+      <button class="mini-btn" bindtap="openDetail">详情</button>
+    </view>
   </view>
 
-  <view class="traffic card">
+  <view class="traffic card sticker-card">
     <view class="section-mini">交通安排</view>
     <view class="traffic-row">
       <view class="traffic-icon">🚄</view>
@@ -24,16 +27,29 @@
     </view>
   </view>
 
-  <view class="section-title">当天景点</view>
+  <view class="section-head">
+    <view class="section-title">当天景点</view>
+    <button class="mini-btn" bindtap="toggleEditMode">{{editMode ? '完成' : '编辑顺序'}}</button>
+  </view>
   <view class="timeline card">
-    <view wx:for="{{routeSpots}}" wx:key="name" class="spot">
-      <view class="time">{{item.time}}</view>
+    <view class="timeline-summary">{{timeline.summary}}</view>
+    <view wx:for="{{timeline.conflicts}}" wx:key="*this" class="conflict-tip">{{item}}</view>
+    <view wx:for="{{timeline.items}}" wx:key="name" class="spot">
+      <view class="time">{{item.timeRange}}</view>
       <view class="line-dot"></view>
       <view class="spot-main">
-        <view class="spot-name">{{item.name}} <text class="spot-area">{{item.area}}</text></view>
+        <view class="spot-name">{{index + 1}}. {{item.name}} <text class="spot-area">{{item.area}}</text></view>
         <view class="spot-note">{{item.note}}</view>
         <view class="spot-meta">{{item.bestPeriod}} · 建议停留 {{item.stayMinutes}} 分钟</view>
+        <view wx:if="{{item.transportToNext}}" class="spot-transport">下一段：{{item.transportToNext.mode}} {{item.transportToNext.minutes}} 分钟</view>
       </view>
+      <view wx:if="{{editMode}}" class="spot-actions">
+        <button class="sort-btn" data-index="{{index}}" data-delta="-1" bindtap="moveSpot" disabled="{{index === 0}}">↑</button>
+        <button class="sort-btn" data-index="{{index}}" data-delta="1" bindtap="moveSpot" disabled="{{index === timeline.items.length - 1}}">↓</button>
+      </view>
+    </view>
+    <view wx:if="{{editMode}}" class="edit-footer">
+      <button class="ghost-btn" bindtap="restoreRecommendedOrder">恢复推荐顺序</button>
     </view>
   </view>
 

@@ -54,3 +54,34 @@ textarea {
   min-height: 180rpx;
   padding: 24rpx;
 }
+
+.spot-preview {
+  display: grid;
+  gap: 14rpx;
+  margin: -8rpx 0 26rpx;
+}
+
+.spot-chip {
+  display: grid;
+  grid-template-columns: 96rpx 1fr;
+  gap: 18rpx;
+  padding: 18rpx;
+  border-radius: 22rpx;
+  background: #fff9f0;
+}
+
+.spot-time {
+  color: #4a9fe8;
+  font-weight: 900;
+}
+
+.spot-name {
+  color: #20242a;
+  font-weight: 900;
+}
+
+.spot-note {
+  margin-top: 6rpx;
+  color: #7b8492;
+  font-size: 24rpx;
+}

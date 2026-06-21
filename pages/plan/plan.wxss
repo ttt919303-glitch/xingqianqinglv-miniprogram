@@ -36,9 +36,44 @@
   font-weight: 900;
 }
 
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.mini-btn {
+  min-width: 112rpx;
+  height: 58rpx;
+  line-height: 58rpx;
+  margin: 0;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  color: #4a9fe8;
+  font-size: 24rpx;
+  font-weight: 900;
+  box-shadow: 0 8rpx 18rpx rgba(74, 159, 232, 0.13);
+}
+
 .traffic {
   margin-top: 24rpx;
   padding: 32rpx;
+}
+
+.sticker-card {
+  border: 2rpx dashed rgba(74, 159, 232, 0.25);
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 32rpx;
+}
+
+.section-head .section-title {
+  margin: 0;
 }
 
 .section-mini {
@@ -72,15 +107,35 @@
   padding: 16rpx 30rpx 8rpx;
 }
 
+.timeline-summary {
+  margin: 12rpx 0 16rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 20rpx;
+  background: #fff9f0;
+  color: #8a6419;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.conflict-tip {
+  margin-bottom: 12rpx;
+  padding: 14rpx 18rpx;
+  border-radius: 18rpx;
+  background: #fff1f2;
+  color: #b2485d;
+  font-size: 23rpx;
+}
+
 .spot {
   display: grid;
-  grid-template-columns: 98rpx 34rpx 1fr;
+  grid-template-columns: 132rpx 34rpx 1fr auto;
   min-height: 116rpx;
 }
 
 .time {
   padding-top: 26rpx;
   color: #4a9fe8;
+  font-size: 22rpx;
   font-weight: 800;
 }
 
@@ -140,6 +195,45 @@
   margin-top: 8rpx;
   color: #a07835;
   font-size: 23rpx;
+}
+
+.spot-transport {
+  display: inline-block;
+  margin-top: 12rpx;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: #e7f7f4;
+  color: #269384;
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
+.spot-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  padding-top: 22rpx;
+}
+
+.sort-btn {
+  width: 56rpx;
+  height: 52rpx;
+  line-height: 52rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 18rpx;
+  background: #eef7ff;
+  color: #3388cf;
+  font-size: 24rpx;
+  font-weight: 900;
+}
+
+.sort-btn[disabled] {
+  opacity: 0.35;
+}
+
+.edit-footer {
+  padding: 18rpx 0 24rpx;
 }
 
 .route-card {

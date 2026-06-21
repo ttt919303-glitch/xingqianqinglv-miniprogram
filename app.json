@@ -1,12 +1,15 @@
 {
   "pages": [
     "pages/home/home",
+    "pages/plan/plan",
     "pages/checklist/checklist",
+    "pages/bills/bills",
+    "pages/profile/profile",
     "pages/add/add",
     "pages/templates/templates",
-    "pages/profile/profile",
     "pages/category/category",
-    "pages/plan/plan"
+    "pages/detail/detail",
+    "pages/favorites/favorites"
   ],
   "window": {
     "navigationBarTitleText": "行前晴旅",
@@ -28,20 +31,20 @@
         "selectedIconPath": "assets/tabbar/home-active.png"
       },
       {
+        "pagePath": "pages/plan/plan",
+        "text": "路线",
+        "iconPath": "assets/tabbar/template.png",
+        "selectedIconPath": "assets/tabbar/template-active.png"
+      },
+      {
         "pagePath": "pages/checklist/checklist",
-        "text": "物品清单",
+        "text": "清单",
         "iconPath": "assets/tabbar/list.png",
         "selectedIconPath": "assets/tabbar/list-active.png"
       },
       {
-        "pagePath": "pages/add/add",
-        "text": "+",
-        "iconPath": "assets/tabbar/add.png",
-        "selectedIconPath": "assets/tabbar/add-active.png"
-      },
-      {
-        "pagePath": "pages/templates/templates",
-        "text": "模板",
+        "pagePath": "pages/bills/bills",
+        "text": "账单",
         "iconPath": "assets/tabbar/template.png",
         "selectedIconPath": "assets/tabbar/template-active.png"
       },

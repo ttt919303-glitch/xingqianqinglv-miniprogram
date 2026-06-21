@@ -63,6 +63,24 @@
     </view>
   </view>
 
+  <view class="quick-grid">
+    <view class="quick-card card" bindtap="openRoute">
+      <view class="quick-icon">🗺️</view>
+      <view class="quick-title">路线编辑</view>
+      <view class="quick-desc">调整景点顺序和时间</view>
+    </view>
+    <view class="quick-card card" bindtap="openTemplates">
+      <view class="quick-icon">🧳</view>
+      <view class="quick-title">旅行模板</view>
+      <view class="quick-desc">快速套用准备清单</view>
+    </view>
+    <view class="quick-card card" bindtap="openAdd">
+      <view class="quick-icon">➕</view>
+      <view class="quick-title">新增计划</view>
+      <view class="quick-desc">导入地点和交通</view>
+    </view>
+  </view>
+
   <view class="section-title">今日准备</view>
   <view class="prepare-card card">
     <view class="prepare-header">

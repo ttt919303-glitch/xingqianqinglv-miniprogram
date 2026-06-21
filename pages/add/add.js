@@ -10,6 +10,7 @@ Page({
     trafficTime: '',
     duration: '',
     attractionsText: '',
+    importedSpots: [],
     count: 1,
     categories: [],
     categoryIndex: 3,
@@ -67,7 +68,11 @@ Page({
   },
 
   onAttractionsInput(event) {
-    this.setData({ attractionsText: event.detail.value });
+    const attractionsText = event.detail.value;
+    this.setData({
+      attractionsText,
+      importedSpots: app.parseAttractions(attractionsText)
+    });
   },
 
   onCountInput(event) {
@@ -141,6 +146,7 @@ Page({
       trafficTime: '',
       duration: '',
       attractionsText: '',
+      importedSpots: [],
       count: 1
     });
 

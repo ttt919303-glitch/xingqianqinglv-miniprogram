@@ -33,7 +33,25 @@ Page({
   openPlan(event) {
     const id = event.currentTarget.dataset.id;
     wx.navigateTo({
-      url: `/pages/plan/plan?id=${id}`
+      url: `/pages/detail/detail?id=${id}`
+    });
+  },
+
+  openRoute() {
+    wx.switchTab({
+      url: '/pages/plan/plan'
+    });
+  },
+
+  openTemplates() {
+    wx.navigateTo({
+      url: '/pages/templates/templates'
+    });
+  },
+
+  openAdd() {
+    wx.navigateTo({
+      url: '/pages/add/add'
     });
   },
 

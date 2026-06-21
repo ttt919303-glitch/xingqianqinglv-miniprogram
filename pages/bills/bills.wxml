@@ -1,0 +1,68 @@
+<view class="page with-tab bills-page">
+  <view class="title">旅行账单</view>
+  <view class="subtitle">先记录单人预算和实际花费，路线交通预算会更清楚</view>
+
+  <view class="trip-tabs">
+    <view wx:for="{{trips}}" wx:key="id" class="trip-tab {{selectedTripId === item.id ? 'active' : ''}}" bindtap="chooseTrip" data-id="{{item.id}}">
+      {{item.city}}
+    </view>
+  </view>
+
+  <view class="bill-summary card">
+    <view class="summary-item">
+      <view class="summary-num">¥{{summary.budgetTotal}}</view>
+      <view class="summary-label">总预算</view>
+    </view>
+    <view class="summary-item">
+      <view class="summary-num spent">¥{{summary.actualTotal}}</view>
+      <view class="summary-label">已花费</view>
+    </view>
+    <view class="summary-item">
+      <view class="summary-num left">¥{{summary.leftBudget}}</view>
+      <view class="summary-label">剩余</view>
+    </view>
+  </view>
+
+  <view class="form-card card">
+    <view class="field">
+      <view class="label">账单名称</view>
+      <input value="{{title}}" placeholder="例如：高铁票 / 午餐 / 门票" bindinput="onTitleInput" />
+    </view>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">金额</view>
+        <input type="digit" value="{{amount}}" placeholder="例如：139" bindinput="onAmountInput" />
+      </view>
+      <view class="field">
+        <view class="label">分类</view>
+        <picker range="{{categories}}" value="{{categoryIndex}}" bindchange="onCategoryChange">
+          <view class="picker-value">{{categories[categoryIndex]}}</view>
+        </picker>
+      </view>
+    </view>
+    <view class="field">
+      <view class="label">类型</view>
+      <picker range="{{types}}" value="{{typeIndex}}" bindchange="onTypeChange">
+        <view class="picker-value">{{types[typeIndex]}}</view>
+      </picker>
+    </view>
+    <button class="primary-btn" bindtap="addBill">记录账单</button>
+  </view>
+
+  <view class="section-title">分类统计</view>
+  <view class="category-card card">
+    <view wx:for="{{summary.categories}}" wx:key="name" class="category-row">
+      <view>{{item.name}}</view>
+      <view class="category-money">预算 ¥{{item.budget}} · 已花 ¥{{item.actual}}</view>
+    </view>
+  </view>
+
+  <view class="section-title">最近记录</view>
+  <view wx:for="{{summary.bills}}" wx:key="id" class="bill-item card">
+    <view>
+      <view class="bill-title">{{item.title}}</view>
+      <view class="subtitle">{{item.category}} · {{item.type === 'budget' ? '预算' : '实际花费'}}</view>
+    </view>
+    <view class="bill-money">¥{{item.amount}}</view>
+  </view>
+</view>

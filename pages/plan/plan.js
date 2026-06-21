@@ -16,14 +16,27 @@ Page({
     routeSummary: '',
     routeSteps: [],
     routeSpots: [],
+    timeline: {
+      items: [],
+      summary: '',
+      conflicts: []
+    },
+    editMode: false,
     routeSource: 'local',
     routeLoading: false,
     routeError: ''
   },
 
   onLoad(options) {
-    const selectedId = options.id || 'shanghai';
+    const selectedId = options.id || wx.getStorageSync('selectedTripId') || 'shanghai';
     this.setTrip(selectedId);
+  },
+
+  onShow() {
+    const selectedId = wx.getStorageSync('selectedTripId');
+    if (selectedId && selectedId !== this.data.selectedId) {
+      this.setTrip(selectedId);
+    }
   },
 
   setTrip(id) {
@@ -45,6 +58,7 @@ Page({
   },
 
   chooseTrip(event) {
+    wx.setStorageSync('selectedTripId', event.currentTarget.dataset.id);
     this.setTrip(event.currentTarget.dataset.id);
   },
 
@@ -85,6 +99,7 @@ Page({
       routeSummary: routePlan.summary,
       routeSteps,
       routeSpots: routePlan.orderedAttractions,
+      timeline: app.buildEditableTimeline({ ...trip, attractions: routePlan.orderedAttractions }),
       routeSource: routePlan.source || 'local',
       routeError: routePlan.errorMessage || ''
     });
@@ -113,8 +128,49 @@ Page({
       routeSummary: routePlan.summary,
       routeSteps,
       routeSpots: routePlan.orderedAttractions,
+      timeline: app.buildEditableTimeline({ ...this.data.trip, attractions: routePlan.orderedAttractions }),
       routeSource: routePlan.source || 'local',
       routeError: routePlan.errorMessage || ''
+    });
+  },
+
+  toggleEditMode() {
+    this.setData({
+      editMode: !this.data.editMode
+    });
+  },
+
+  moveSpot(event) {
+    const index = Number(event.currentTarget.dataset.index);
+    const delta = Number(event.currentTarget.dataset.delta);
+    const nextTrip = app.moveTripSpot(this.data.trip.id, index, delta);
+    this.setData({
+      trip: {
+        ...nextTrip,
+        isCustom: nextTrip.id.startsWith('custom-')
+      },
+      strategyId: 'manual'
+    });
+    this.buildRoute();
+  },
+
+  restoreRecommendedOrder() {
+    this.setData({
+      strategyId: 'time'
+    });
+    this.buildRoute();
+    wx.showToast({
+      title: '已恢复推荐顺序',
+      icon: 'none'
+    });
+  },
+
+  openDetail() {
+    if (!this.data.trip) {
+      return;
+    }
+    wx.navigateTo({
+      url: `/pages/detail/detail?id=${this.data.trip.id}`
     });
   },
 

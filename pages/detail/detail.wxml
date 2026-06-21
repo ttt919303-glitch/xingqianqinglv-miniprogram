@@ -1,0 +1,53 @@
+<view class="page detail-page">
+  <view class="detail-hero card">
+    <view>
+      <view class="title">{{detail.trip.city}}旅行计划</view>
+      <view class="subtitle">{{detail.trip.dateRange}} · {{detail.routePlan.totalText}}</view>
+    </view>
+    <view class="hero-sticker">手账</view>
+  </view>
+
+  <view class="module-grid">
+    <view wx:for="{{detail.modules}}" wx:key="id" class="module-card card">
+      <view class="module-name">{{item.name}}</view>
+      <view class="module-desc">{{item.desc}}</view>
+    </view>
+  </view>
+
+  <view class="section-title">交通卡片</view>
+  <view wx:for="{{detail.transportCards}}" wx:key="id" class="ticket-card card">
+    <view class="ticket-icon">{{item.icon}}</view>
+    <view class="ticket-main">
+      <view class="ticket-code">{{item.code}}</view>
+      <view class="subtitle">{{item.from}} → {{item.to}}</view>
+      <view class="ticket-time">{{item.departTime}} - {{item.arriveTime}}</view>
+      <view class="ticket-note">{{item.seat}} · {{item.remindText}}</view>
+    </view>
+  </view>
+
+  <view class="action-row">
+    <button class="primary-btn" bindtap="openRoute">编辑路线</button>
+    <button class="ghost-btn" bindtap="openFavorites">地点收藏夹</button>
+  </view>
+
+  <view class="section-title">旅行待办</view>
+  <view class="memo-card card">
+    <view>
+      <view class="memo-title">{{detail.memoSummary.undone}} 条待办</view>
+      <view class="subtitle">出发前、路上、入住、游玩都可以记录</view>
+    </view>
+    <button class="mini-btn" bindtap="addMemo">加一条</button>
+  </view>
+
+  <view class="section-title">账单与清单</view>
+  <view class="split-actions">
+    <view class="split-card card" bindtap="openBills">
+      <view class="split-num">¥{{detail.billSummary.actualTotal}}</view>
+      <view class="subtitle">已记录花费</view>
+    </view>
+    <view class="split-card card" bindtap="openChecklist">
+      <view class="split-num">{{detail.packingSummary.packed}}/{{detail.packingSummary.total}}</view>
+      <view class="subtitle">行李准备</view>
+    </view>
+  </view>
+</view>
