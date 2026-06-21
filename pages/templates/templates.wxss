@@ -1,0 +1,69 @@
+.template-list {
+  margin-top: 34rpx;
+}
+
+.template-card {
+  display: flex;
+  gap: 26rpx;
+  margin-bottom: 24rpx;
+  padding: 30rpx;
+}
+
+.template-icon {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 30rpx;
+  background: #fff2d8;
+  padding: 10rpx;
+}
+
+.template-icon image {
+  width: 100%;
+  height: 100%;
+}
+
+.template-main {
+  flex: 1;
+}
+
+.template-name {
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
+.template-desc {
+  margin-top: 10rpx;
+  color: #626b78;
+  line-height: 1.55;
+}
+
+.template-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.tag {
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  background: #eaf5ff;
+  color: #3388cf;
+  font-size: 24rpx;
+}
+
+.note {
+  margin-top: 32rpx;
+  padding: 30rpx;
+}
+
+.note-title {
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.note-text {
+  margin-top: 12rpx;
+  color: #626b78;
+  line-height: 1.65;
+}

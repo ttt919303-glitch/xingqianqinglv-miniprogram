@@ -1,0 +1,37 @@
+<view class="page category-page">
+  <view class="category-head">
+    <view class="cat-big-icon" style="background: {{category.color}}22;">
+      <image src="{{category.art}}" mode="aspectFit"></image>
+    </view>
+    <view>
+      <view class="title">{{category.name}}</view>
+      <view class="subtitle">已打包 {{progress.packed}}/{{progress.total}}</view>
+    </view>
+  </view>
+
+  <view class="tabs">
+    <view wx:for="{{tabs}}" wx:key="*this" class="tab {{activeTab === index ? 'active' : ''}}" bindtap="switchTab" data-index="{{index}}">
+      {{item}}
+    </view>
+  </view>
+
+  <view class="category-actions">
+    <button class="ghost-btn mini-btn" bindtap="unpackCategory">清空本类</button>
+    <button class="primary-btn mini-btn" bindtap="packCategory">本类全选</button>
+  </view>
+
+  <view class="item-grid">
+    <view wx:for="{{visibleItems}}" wx:key="id" class="item-card qa-item-card {{item.packed ? 'packed' : ''}}" bindtap="toggleItem" catchlongpress="removeItem" data-id="{{item.id}}">
+      <view class="item-more">•••</view>
+      <view class="item-icon">{{item.icon}}</view>
+      <view class="item-name">{{item.name}}</view>
+      <view class="item-count">x{{item.count}}</view>
+      <view wx:if="{{item.note}}" class="item-note">{{item.note}}</view>
+      <view class="check">{{item.packed ? '✓' : ''}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{visibleItems.length === 0}}" class="empty card">这里暂时没有物品</view>
+
+  <button class="float-add qa-float-add" bindtap="addItem">+</button>
+</view>

@@ -1,0 +1,50 @@
+<view class="page with-tab profile-page">
+  <view class="profile-head card">
+    <view class="avatar">晴</view>
+    <view>
+      <view class="title">行前晴旅</view>
+      <view class="subtitle">轻松规划每一次出发</view>
+    </view>
+  </view>
+
+  <view class="stats">
+    <view wx:for="{{stats}}" wx:key="label" class="stat-card card">
+      <view class="stat-value">{{item.value}}</view>
+      <view class="muted">{{item.label}}</view>
+    </view>
+  </view>
+
+  <view class="section-title">准备进度</view>
+  <view class="progress-card card">
+    <view class="progress-row">
+      <view>当前已完成</view>
+      <view class="progress-num">{{progress.percent}}%</view>
+    </view>
+    <view class="progress-line">
+      <view class="progress-fill" style="width: {{progress.percent}}%;"></view>
+    </view>
+    <view class="subtitle">已准备 {{progress.packed}} / {{progress.total}} 件物品</view>
+  </view>
+
+  <view class="section-title">作品说明</view>
+  <view class="intro card">
+    <view class="intro-line">主题：旅行出行准备助手</view>
+    <view class="intro-line">重点：行程时间、交通安排、物品打包、景点计划</view>
+    <view class="intro-line">特色：清新插画风、卡片式信息层级、页面导航清晰</view>
+    <view class="intro-line">拓展：后续可接入地图服务，实现真实路线优化</view>
+  </view>
+
+  <view class="section-title">使用指南</view>
+  <view class="guide card">
+    <view wx:for="{{guide}}" wx:key="*this" class="guide-line">
+      <view class="guide-dot">{{index + 1}}</view>
+      <view>{{item}}</view>
+    </view>
+  </view>
+
+  <view class="section-title">数据管理</view>
+  <view class="manage card">
+    <button class="ghost-btn" bindtap="clearPacked">清空打包勾选</button>
+    <button class="primary-btn danger-btn" bindtap="resetData">恢复初始数据</button>
+  </view>
+</view>

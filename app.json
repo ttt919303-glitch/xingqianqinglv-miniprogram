@@ -1,0 +1,58 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/checklist/checklist",
+    "pages/add/add",
+    "pages/templates/templates",
+    "pages/profile/profile",
+    "pages/category/category",
+    "pages/plan/plan"
+  ],
+  "window": {
+    "navigationBarTitleText": "行前晴旅",
+    "navigationBarBackgroundColor": "#F6F8FB",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F6F8FB",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#8A8F99",
+    "selectedColor": "#4A9FE8",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页",
+        "iconPath": "assets/tabbar/home.png",
+        "selectedIconPath": "assets/tabbar/home-active.png"
+      },
+      {
+        "pagePath": "pages/checklist/checklist",
+        "text": "物品清单",
+        "iconPath": "assets/tabbar/list.png",
+        "selectedIconPath": "assets/tabbar/list-active.png"
+      },
+      {
+        "pagePath": "pages/add/add",
+        "text": "+",
+        "iconPath": "assets/tabbar/add.png",
+        "selectedIconPath": "assets/tabbar/add-active.png"
+      },
+      {
+        "pagePath": "pages/templates/templates",
+        "text": "模板",
+        "iconPath": "assets/tabbar/template.png",
+        "selectedIconPath": "assets/tabbar/template-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "assets/tabbar/profile.png",
+        "selectedIconPath": "assets/tabbar/profile-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

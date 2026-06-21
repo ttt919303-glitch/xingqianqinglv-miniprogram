@@ -1,0 +1,26 @@
+# WeChat DevTools local/runtime files
+.devtools-local/
+.wechat-agent/
+.pnpm-store/
+.agents/
+*.log
+
+# Dependencies and package manager caches
+node_modules/
+vendor/miniprogram-agent-bridge/node_modules/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Temporary outputs
+dist/
+build/
+coverage/
+tmp/
+temp/
+
+# Local private API keys
+config/tencent-map.js

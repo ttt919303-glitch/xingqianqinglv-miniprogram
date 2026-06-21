@@ -1,0 +1,50 @@
+<view class="page with-tab add-page">
+  <view class="title">快速添加</view>
+  <view class="subtitle">新增内容会保存在本地，并同步到首页、行程页或清单统计中</view>
+
+  <view class="type-switch card">
+    <view class="type-item qa-add-trip-tab {{type === 'trip' ? 'active' : ''}}" bindtap="switchType" data-type="trip">新增行程</view>
+    <view class="type-item qa-add-item-tab {{type === 'item' ? 'active' : ''}}" bindtap="switchType" data-type="item">新增物品</view>
+  </view>
+
+  <view class="form card">
+    <view class="field">
+      <view class="label">{{type === 'trip' ? '目的地' : '物品名称'}}</view>
+      <input class="qa-name-input" value="{{name}}" placeholder="{{type === 'trip' ? '例如：南京' : '例如：墨镜'}}" bindinput="onNameInput" />
+    </view>
+    <view class="field">
+      <view class="label">{{type === 'trip' ? '出行时间' : '所属分类'}}</view>
+      <input wx:if="{{type === 'trip'}}" class="qa-date-input" value="{{date}}" placeholder="例如：8月5日 - 8月6日" bindinput="onDateInput" />
+      <picker wx:else range="{{categories}}" range-key="name" value="{{categoryIndex}}" bindchange="onCategoryChange">
+        <view class="picker-value">{{selectedCategoryName}}</view>
+      </picker>
+    </view>
+    <view class="field" wx:if="{{type === 'item'}}">
+      <view class="label">数量</view>
+      <input class="qa-count-input" type="number" value="{{count}}" placeholder="例如：1" bindinput="onCountInput" />
+    </view>
+    <block wx:if="{{type === 'trip'}}">
+      <view class="field">
+        <view class="label">交通方式</view>
+        <input class="qa-traffic-input" value="{{traffic}}" placeholder="例如：高铁 G12 / 飞机 MU588" bindinput="onTrafficInput" />
+      </view>
+      <view class="field">
+        <view class="label">交通时间</view>
+        <input class="qa-traffic-time-input" value="{{trafficTime}}" placeholder="例如：08:00 - 09:30" bindinput="onTrafficTimeInput" />
+      </view>
+      <view class="field">
+        <view class="label">交通耗时</view>
+        <input class="qa-duration-input" value="{{duration}}" placeholder="例如：1小时30分" bindinput="onDurationInput" />
+      </view>
+      <view class="field">
+        <view class="label">当天景点</view>
+        <textarea class="qa-attractions-input" value="{{attractionsText}}" placeholder="每行一个景点，例如：&#10;09:30 夫子庙 - 上午先逛秦淮河&#10;14:00 中山陵 - 下午避开人流" bindinput="onAttractionsInput"></textarea>
+      </view>
+    </block>
+    <view class="field">
+      <view class="label">备注</view>
+      <textarea class="qa-note-input" value="{{note}}" placeholder="写下交通方式、准备提醒或景点安排" bindinput="onNoteInput"></textarea>
+    </view>
+    <button class="primary-btn qa-save-button" bindtap="saveDraft">保存</button>
+  </view>
+</view>

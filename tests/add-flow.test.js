@@ -1,0 +1,325 @@
+const fs = require('fs');
+const vm = require('vm');
+const path = require('path');
+const assert = require('assert');
+
+const root = path.resolve(__dirname, '..');
+
+function loadMiniProgram() {
+  const storage = {};
+  const pages = {};
+  const navCalls = [];
+  let appInstance;
+
+  const wx = {
+    getStorageSync(key) {
+      return storage[key];
+    },
+    setStorageSync(key, value) {
+      storage[key] = value;
+    },
+    setNavigationBarTitle() {},
+    showToast() {},
+    switchTab(options) {
+      navCalls.push({ type: 'switchTab', url: options.url });
+      if (options.success) {
+        options.success();
+      }
+    },
+    navigateTo(options) {
+      navCalls.push({ type: 'navigateTo', url: options.url });
+    }
+  };
+
+  const context = {
+    console,
+    Date,
+    setTimeout(fn) {
+      fn();
+    },
+    wx,
+    App(config) {
+      appInstance = config;
+      if (config.onLaunch) {
+        config.onLaunch();
+      }
+    },
+    getApp() {
+      return appInstance;
+    },
+    Page(config) {
+      pages.current = config;
+    }
+  };
+  vm.createContext(context);
+
+  function run(file) {
+    const code = fs.readFileSync(path.join(root, file), 'utf8');
+    vm.runInContext(code, context, { filename: file });
+    return pages.current;
+  }
+
+  run('app.js');
+  return { app: appInstance, wx, storage, navCalls, run };
+}
+
+function createPage(pageConfig, options = {}) {
+  const data = JSON.parse(JSON.stringify(pageConfig.data || {}));
+  return {
+    ...pageConfig,
+    data,
+    setData(patch) {
+      this.data = { ...this.data, ...patch };
+    },
+    triggerLoad() {
+      if (this.onLoad) {
+        this.onLoad(options);
+      }
+    },
+    triggerShow() {
+      if (this.onShow) {
+        this.onShow();
+      }
+    }
+  };
+}
+
+function test(name, fn) {
+  try {
+    fn();
+    console.log(`PASS ${name}`);
+  } catch (error) {
+    console.error(`FAIL ${name}`);
+    console.error(error.message);
+    process.exitCode = 1;
+  }
+}
+
+test('新增物品后分类详情页重新显示最新物品', () => {
+  const env = loadMiniProgram();
+  const categoryConfig = env.run('pages/category/category.js');
+  const page = createPage(categoryConfig, { id: 'travel' });
+  page.triggerLoad();
+  assert.strictEqual(page.data.items.some(item => item.name === '墨镜'), false);
+
+  env.app.addItem({ categoryId: 'travel', name: '墨镜', count: 1 });
+  assert.strictEqual(typeof page.onShow, 'function', '分类详情页需要 onShow 重新读取本地数据');
+  page.triggerShow();
+
+  assert.strictEqual(page.data.items.some(item => item.name === '墨镜'), true);
+});
+
+test('新增页保存物品后进入对应分类详情', () => {
+  const env = loadMiniProgram();
+  const addConfig = env.run('pages/add/add.js');
+  const page = createPage(addConfig);
+  page.onLoad();
+  page.setData({
+    type: 'item',
+    name: '墨镜',
+    categoryIndex: 3,
+    count: 1
+  });
+
+  page.saveDraft();
+
+  assert.deepStrictEqual(env.navCalls.slice(-2), [
+    { type: 'switchTab', url: '/pages/checklist/checklist' },
+    { type: 'navigateTo', url: '/pages/category/category?id=travel' }
+  ]);
+});
+
+test('新增行程保存交通和景点安排', () => {
+  const env = loadMiniProgram();
+
+  const trip = env.app.addTrip({
+    city: '南京',
+    dateRange: '8月5日 - 8月6日',
+    traffic: '高铁 G12',
+    trafficTime: '08:00 - 09:30',
+    duration: '1小时30分',
+    note: '带好学生证',
+    attractionsText: '09:30 夫子庙 - 上午先逛秦淮河\n14:00 中山陵 - 下午避开人流'
+  });
+
+  assert.strictEqual(trip.traffic, '高铁 G12');
+  assert.strictEqual(trip.trafficTime, '08:00 - 09:30');
+  assert.strictEqual(trip.duration, '1小时30分');
+  assert.strictEqual(JSON.stringify(trip.attractions), JSON.stringify([
+    { time: '09:30', name: '夫子庙', note: '上午先逛秦淮河' },
+    { time: '14:00', name: '中山陵', note: '下午避开人流' }
+  ]));
+});
+
+test('路线推荐会根据策略生成不同顺序和交通摘要', () => {
+  const env = loadMiniProgram();
+  const trip = {
+    city: '上海',
+    attractions: [
+      { time: '14:00', name: '豫园', note: '下午游览老城厢', area: '黄浦', stayMinutes: 80, x: 2, y: 2 },
+      { time: '09:30', name: '外滩', note: '上午看江景', area: '黄浦', stayMinutes: 70, x: 1, y: 1 },
+      { time: '19:00', name: '陆家嘴', note: '晚上看夜景', area: '浦东', stayMinutes: 90, x: 8, y: 2 }
+    ]
+  };
+
+  const timePlan = env.app.buildRoutePlan(trip, 'time');
+  const transferPlan = env.app.buildRoutePlan(trip, 'transfer');
+
+  assert.deepStrictEqual(timePlan.orderedAttractions.map(item => item.name), ['外滩', '豫园', '陆家嘴']);
+  assert.strictEqual(timePlan.strategyName, '时间优先');
+  assert.strictEqual(timePlan.segments.length, 2);
+  assert.ok(timePlan.summary.includes('预计'));
+  assert.ok(timePlan.summary.includes('外滩 -> 豫园 -> 陆家嘴'));
+  assert.deepStrictEqual(transferPlan.orderedAttractions.map(item => item.name), ['豫园', '外滩', '陆家嘴']);
+  assert.ok(transferPlan.transferCount <= timePlan.transferCount);
+});
+
+test('行程计划页切换策略会刷新推荐路线', () => {
+  const env = loadMiniProgram();
+  env.wx.setStorageSync('customTrips', [
+    {
+      id: 'custom-route',
+      city: '策略测试',
+      dateRange: '8月8日',
+      daysLeft: 7,
+      traffic: '地铁',
+      trafficTime: '09:00 - 20:00',
+      duration: '全天',
+      packed: 0,
+      total: 0,
+      tip: '测试路线策略',
+      attractions: [
+        { time: '14:00', name: '豫园', note: '下午游览老城厢', area: '黄浦', x: 2, y: 2 },
+        { time: '09:30', name: '外滩', note: '上午看江景', area: '黄浦', x: 1, y: 1 },
+        { time: '19:00', name: '陆家嘴', note: '晚上看夜景', area: '浦东', x: 8, y: 2 }
+      ]
+    }
+  ]);
+  const planConfig = env.run('pages/plan/plan.js');
+  const page = createPage(planConfig, { id: 'custom-route' });
+  page.triggerLoad();
+
+  assert.strictEqual(page.data.routePlan.strategyName, '时间优先');
+  const timeRoute = page.data.routePlan.routeNames;
+
+  page.chooseStrategy({ currentTarget: { dataset: { id: 'transfer' } } });
+
+  assert.strictEqual(page.data.routePlan.strategyName, '少换乘');
+  assert.notStrictEqual(page.data.routePlan.routeNames, timeRoute);
+  assert.ok(page.data.routeSteps.length > 0);
+});
+
+test('腾讯地图请求会带 key 并按路线段选择接口', () => {
+  const env = loadMiniProgram();
+  const trip = {
+    city: '上海',
+    attractions: [
+      { time: '09:30', name: '外滩', note: '上午看江景' },
+      { time: '11:00', name: '南京路步行街', note: '步行衔接' },
+      { time: '19:00', name: '陆家嘴', note: '晚上看夜景' }
+    ]
+  };
+
+  const targets = env.app.buildTencentRouteTargets(trip, 'time');
+  const geocoderRequest = env.app.buildTencentGeocoderRequest('上海', targets[0]);
+  const walkingRequest = env.app.buildTencentDirectionRequest(
+    { lat: 31.239, lng: 121.499 },
+    { lat: 31.235, lng: 121.475 },
+    '步行'
+  );
+  const drivingRequest = env.app.buildTencentDirectionRequest(
+    { lat: 31.239, lng: 121.499 },
+    { lat: 31.236, lng: 121.502 },
+    '地铁/打车'
+  );
+
+  assert.strictEqual(targets[0].address, '上海外滩');
+  assert.strictEqual(geocoderRequest.url, 'https://apis.map.qq.com/ws/geocoder/v1/');
+  assert.strictEqual(Object.prototype.hasOwnProperty.call(geocoderRequest.data, 'key'), true);
+  assert.strictEqual(geocoderRequest.data.address, '上海外滩');
+  assert.strictEqual(walkingRequest.url, 'https://apis.map.qq.com/ws/direction/v1/walking/');
+  assert.strictEqual(drivingRequest.url, 'https://apis.map.qq.com/ws/direction/v1/driving/');
+  assert.strictEqual(walkingRequest.data.from, '31.239,121.499');
+  assert.strictEqual(
+    env.app.formatTencentRouteError(new Error('此key每日调用量已达到上限')),
+    '腾讯路线今日配额已用完，已切换本地推荐路线。'
+  );
+});
+
+test('分类详情加号会记住当前新增分类', () => {
+  const env = loadMiniProgram();
+  const categoryConfig = env.run('pages/category/category.js');
+  const page = createPage(categoryConfig, { id: 'medicine' });
+  page.triggerLoad();
+
+  page.addItem();
+
+  assert.strictEqual(env.storage.preferredCategoryId, 'medicine');
+  assert.deepStrictEqual(env.navCalls.slice(-1), [
+    { type: 'switchTab', url: '/pages/add/add' }
+  ]);
+});
+
+test('可以删除自定义物品并刷新分类统计', () => {
+  const env = loadMiniProgram();
+  const added = env.app.addItem({ categoryId: 'travel', name: '墨镜', count: 1 });
+  assert.strictEqual(env.app.getCategories().find(item => item.id === 'travel').items.some(item => item.id === added.id), true);
+
+  env.app.removeCustomItem(added.id);
+
+  assert.strictEqual(env.app.getCategories().find(item => item.id === 'travel').items.some(item => item.id === added.id), false);
+});
+
+test('可以按分类打包和清空打包状态', () => {
+  const env = loadMiniProgram();
+  const travel = env.app.getCategories().find(item => item.id === 'travel');
+
+  env.app.unpackCategory('travel');
+  assert.strictEqual(env.app.getCategoryProgress(travel).packed, 0);
+
+  env.app.packCategory('travel');
+  assert.strictEqual(env.app.getCategoryProgress(travel).packed, travel.items.length);
+
+  env.app.unpackAll();
+  assert.strictEqual(env.app.getOverallProgress().packed, 0);
+});
+
+test('模板物品重复套用时不会重复添加同名物品', () => {
+  const env = loadMiniProgram();
+
+  env.app.addItem({ categoryId: 'travel', name: '墨镜', count: 1 }, { unique: true });
+  env.app.addItem({ categoryId: 'travel', name: '墨镜', count: 1 }, { unique: true });
+
+  const travelItems = env.app.getCategories().find(item => item.id === 'travel').items;
+  assert.strictEqual(travelItems.filter(item => item.name === '墨镜').length, 1);
+});
+
+test('可以删除自定义行程并保留预设行程', () => {
+  const env = loadMiniProgram();
+  const trip = env.app.addTrip({
+    city: '南京',
+    dateRange: '8月5日 - 8月6日',
+    note: '测试行程'
+  });
+
+  assert.strictEqual(env.app.getTrips().some(item => item.id === trip.id), true);
+  env.app.removeCustomTrip(trip.id);
+
+  assert.strictEqual(env.app.getTrips().some(item => item.id === trip.id), false);
+  assert.strictEqual(env.app.getTrips().some(item => item.id === 'shanghai'), true);
+});
+
+test('重置用户数据会清空自定义内容并恢复默认打包状态', () => {
+  const env = loadMiniProgram();
+  env.app.addItem({ categoryId: 'travel', name: '墨镜', count: 1 });
+  env.app.addTrip({ city: '南京', dateRange: '8月5日 - 8月6日', note: '测试行程' });
+  env.wx.setStorageSync('preferredCategoryId', 'travel');
+  env.app.unpackAll();
+
+  env.app.resetUserData();
+
+  assert.strictEqual(JSON.stringify(env.wx.getStorageSync('customItems')), '[]');
+  assert.strictEqual(JSON.stringify(env.wx.getStorageSync('customTrips')), '[]');
+  assert.strictEqual(env.wx.getStorageSync('preferredCategoryId'), '');
+  assert.strictEqual(JSON.stringify(env.app.getPackedIds()), JSON.stringify(env.app.getDefaultPackedIds()));
+});

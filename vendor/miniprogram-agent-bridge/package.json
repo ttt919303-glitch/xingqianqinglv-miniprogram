@@ -1,0 +1,37 @@
+{
+  "name": "miniprogram-agent-bridge",
+  "version": "0.1.0",
+  "description": "Agent-oriented bridge for WeChat DevTools: CLI wrapper, runtime bridge, and miniprogram automation runner.",
+  "license": "MIT",
+  "private": false,
+  "type": "commonjs",
+  "bin": {
+    "wxmp-devtools": "./bin/devtools.js",
+    "wxmp-runner": "./bin/runner.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "examples",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "check": "node --check lib/devtools.js && node --check lib/runner.js"
+  },
+  "dependencies": {
+    "miniprogram-automator": "0.12.1"
+  },
+  "keywords": [
+    "wechat",
+    "miniprogram",
+    "devtools",
+    "automation",
+    "agent",
+    "cli"
+  ]
+}

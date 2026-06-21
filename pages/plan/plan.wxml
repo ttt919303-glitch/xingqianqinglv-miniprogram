@@ -1,0 +1,89 @@
+<view class="page plan-page">
+  <view class="trip-tabs">
+    <view wx:for="{{trips}}" wx:key="id" class="trip-tab {{selectedId === item.id ? 'active' : ''}}" bindtap="chooseTrip" data-id="{{item.id}}">
+      {{item.city}}
+    </view>
+  </view>
+
+  <view class="plan-hero card">
+    <view>
+      <view class="title">{{trip.city}}</view>
+      <view class="subtitle">{{trip.dateRange}}</view>
+    </view>
+    <view class="date-badge">{{trip.daysLeft}}天</view>
+  </view>
+
+  <view class="traffic card">
+    <view class="section-mini">交通安排</view>
+    <view class="traffic-row">
+      <view class="traffic-icon">🚄</view>
+      <view>
+        <view class="traffic-name">{{trip.traffic}}</view>
+        <view class="subtitle">{{trip.trafficTime}} · {{trip.duration}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section-title">当天景点</view>
+  <view class="timeline card">
+    <view wx:for="{{routeSpots}}" wx:key="name" class="spot">
+      <view class="time">{{item.time}}</view>
+      <view class="line-dot"></view>
+      <view class="spot-main">
+        <view class="spot-name">{{item.name}} <text class="spot-area">{{item.area}}</text></view>
+        <view class="spot-note">{{item.note}}</view>
+        <view class="spot-meta">{{item.bestPeriod}} · 建议停留 {{item.stayMinutes}} 分钟</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="route-card card">
+    <view class="route-title">推荐路线</view>
+    <view class="strategy-tabs">
+      <view wx:for="{{strategies}}" wx:key="id" class="strategy {{strategyId === item.id ? 'active' : ''}}" bindtap="chooseStrategy" data-id="{{item.id}}">
+        {{item.name}}
+      </view>
+    </view>
+    <view class="route-tool">
+      <view class="route-source {{routeSource === 'tencent' ? 'online' : ''}}">
+        {{routeSource === 'tencent' ? '腾讯地图路线' : '本地推荐路线'}}
+      </view>
+      <button class="map-btn qa-tencent-route-button" loading="{{routeLoading}}" bindtap="fetchTencentRoute">
+        {{routeLoading ? '生成中' : '获取腾讯路线'}}
+      </button>
+    </view>
+    <view wx:if="{{routeError}}" class="route-error">{{routeError}}</view>
+    <view class="route-metrics">
+      <view class="metric">
+        <view class="metric-num">{{routePlan.totalText}}</view>
+        <view class="metric-label">预计总用时</view>
+      </view>
+      <view class="metric">
+        <view class="metric-num">{{routePlan.transitMinutes}}分</view>
+        <view class="metric-label">交通衔接</view>
+      </view>
+      <view class="metric">
+        <view class="metric-num">{{routePlan.transferCount}}次</view>
+        <view class="metric-label">非步行换乘</view>
+      </view>
+    </view>
+    <view class="route-text">{{routeSummary}}</view>
+    <view class="route-tags">
+      <view class="pill">{{routePlan.strategyName}}</view>
+      <view class="pill">{{routeSource === 'tencent' ? '真实接口' : '本地估算'}}</view>
+      <view class="pill">{{routeSource === 'tencent' ? '腾讯位置服务' : '可刷新腾讯路线'}}</view>
+    </view>
+    <view class="route-steps">
+      <view wx:for="{{routeSteps}}" wx:key="title" class="route-step">
+        <view class="route-dot {{item.active ? 'active' : ''}}"></view>
+        <view>
+          <view class="route-step-title">{{item.title}}</view>
+          <view class="route-step-desc">{{item.desc}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <button class="primary-btn" bindtap="openChecklist">查看出发清单</button>
+  <button wx:if="{{trip.isCustom}}" class="ghost-btn delete-btn" bindtap="deleteTrip">删除这个自定义行程</button>
+</view>

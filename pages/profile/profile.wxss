@@ -1,0 +1,99 @@
+.profile-head {
+  display: flex;
+  align-items: center;
+  gap: 26rpx;
+  padding: 34rpx;
+  background: linear-gradient(135deg, #ffffff 0%, #ecf7ff 100%);
+}
+
+.avatar {
+  width: 112rpx;
+  height: 112rpx;
+  line-height: 112rpx;
+  text-align: center;
+  border-radius: 36rpx;
+  background: #4a9fe8;
+  color: #ffffff;
+  font-size: 44rpx;
+  font-weight: 900;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18rpx;
+  margin-top: 26rpx;
+}
+
+.stat-card {
+  padding: 26rpx 12rpx;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 42rpx;
+  font-weight: 900;
+  color: #4a9fe8;
+}
+
+.progress-card,
+.intro,
+.guide,
+.manage {
+  padding: 30rpx;
+}
+
+.progress-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+  font-weight: 800;
+}
+
+.progress-num {
+  color: #4a9fe8;
+}
+
+.intro-line {
+  padding: 18rpx 0;
+  color: #4f5967;
+  line-height: 1.55;
+  border-bottom: 1rpx solid #edf1f6;
+}
+
+.intro-line:last-child {
+  border-bottom: 0;
+}
+
+.guide-line {
+  display: grid;
+  grid-template-columns: 44rpx 1fr;
+  gap: 16rpx;
+  align-items: start;
+  padding: 14rpx 0;
+  color: #4f5967;
+  line-height: 1.55;
+}
+
+.guide-dot {
+  width: 36rpx;
+  height: 36rpx;
+  line-height: 36rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: #e7f3ff;
+  color: #3388cf;
+  font-size: 22rpx;
+  font-weight: 900;
+}
+
+.manage {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20rpx;
+}
+
+.danger-btn {
+  background: #f4978e;
+  box-shadow: 0 16rpx 30rpx rgba(244, 151, 142, 0.24);
+}

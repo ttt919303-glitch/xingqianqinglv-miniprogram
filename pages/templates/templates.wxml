@@ -1,0 +1,24 @@
+<view class="page with-tab templates-page">
+  <view class="title">旅行模板</view>
+  <view class="subtitle">选择适合的出行场景，快速建立准备思路</view>
+
+  <view class="template-list">
+    <view wx:for="{{templates}}" wx:key="id" class="template-card card" bindtap="useTemplate" data-id="{{item.id}}" data-name="{{item.name}}">
+      <view class="template-icon">
+        <image src="{{item.art}}" mode="aspectFit"></image>
+      </view>
+      <view class="template-main">
+        <view class="template-name">{{item.name}}</view>
+        <view class="template-desc">{{item.desc}}</view>
+        <view class="template-tags">
+          <view wx:for="{{item.tags}}" wx:key="*this" class="tag">{{item}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="note card">
+    <view class="note-title">模板说明</view>
+    <view class="note-text">模板用于帮助整理思路，实际出行前仍建议结合目的地天气、交通方式和个人习惯再次检查。</view>
+  </view>
+</view>

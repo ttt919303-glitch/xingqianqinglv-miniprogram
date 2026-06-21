@@ -1,0 +1,80 @@
+<view class="page with-tab home-page">
+  <view class="sky">
+    <view class="leaf leaf-a"></view>
+    <view class="leaf leaf-b"></view>
+    <view class="cloud cloud-a"></view>
+    <view class="cloud cloud-b"></view>
+    <view class="balloon"></view>
+    <view class="plane"></view>
+
+    <view class="hero">
+      <view>
+        <view class="title">即将出发</view>
+        <view class="subtitle">{{trips.length}} 个行程 · {{progress.percent}}% 已准备</view>
+      </view>
+      <view class="hero-badge">晴旅</view>
+    </view>
+
+    <swiper class="trip-swiper" current="{{current}}" previous-margin="38rpx" next-margin="38rpx" bindchange="onTripChange">
+      <swiper-item wx:for="{{trips}}" wx:key="id">
+        <view class="trip-card {{item.coverTheme}}" bindtap="openPlan" data-id="{{item.id}}">
+          <view class="trip-top">
+            <view>
+              <view class="trip-city">{{item.city}}</view>
+              <view class="trip-date">{{item.dateRange}}</view>
+            </view>
+            <view class="more">•••</view>
+          </view>
+          <view class="scene">
+            <view class="sun"></view>
+            <view class="building building-a"></view>
+            <view class="building building-b"></view>
+            <view class="building building-c"></view>
+            <view class="water"></view>
+          </view>
+          <view class="status-card">
+            <view class="days">
+              <text class="muted">还有</text>
+              <text class="num">{{item.daysLeft}}</text>
+              <text class="muted">天</text>
+            </view>
+            <view class="ring">
+              <view class="ring-text">{{item.percent}}%</view>
+            </view>
+            <view class="ready">
+              <text>{{item.packed}}/{{item.total}}</text>
+              <text class="muted">已准备</text>
+            </view>
+          </view>
+        </view>
+      </swiper-item>
+    </swiper>
+  </view>
+
+  <view class="dots">
+    <view wx:for="{{trips}}" wx:key="id" class="dot {{index === current ? 'active' : ''}}"></view>
+  </view>
+
+  <view class="tip-card card">
+    <image class="tip-illust" src="/assets/illustrations/hero-mascot.svg" mode="aspectFit"></image>
+    <view>
+      <view class="tip-title">旅行小贴士</view>
+      <view class="tip-text">{{tip}}</view>
+    </view>
+  </view>
+
+  <view class="section-title">今日准备</view>
+  <view class="prepare-card card">
+    <view class="prepare-header">
+      <view>
+        <view class="prepare-title">物品清单</view>
+        <view class="subtitle">已完成 {{progress.packed}} / {{progress.total}}</view>
+      </view>
+      <view class="prepare-percent">{{progress.percent}}%</view>
+    </view>
+    <view class="progress-line">
+      <view class="progress-fill" style="width: {{progress.percent}}%;"></view>
+    </view>
+    <button class="primary-btn" bindtap="goChecklist">继续整理行李</button>
+  </view>
+</view>

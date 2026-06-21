@@ -1,0 +1,11 @@
+{
+  "name": "xingqianqinglv-miniprogram",
+  "version": "1.0.0",
+  "private": true,
+  "description": "行前晴旅微信小程序课程作业：旅行出行准备、物品清单、行程计划与路线推荐。",
+  "scripts": {
+    "test": "node tests/add-flow.test.js",
+    "check": "node tools/check-project.js",
+    "verify": "npm run test && npm run check"
+  }
+}

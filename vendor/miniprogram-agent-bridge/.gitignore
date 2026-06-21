@@ -1,0 +1,6 @@
+node_modules/
+.DS_Store
+.wechat-agent/
+runtime-logs/
+*.log
+*.pid

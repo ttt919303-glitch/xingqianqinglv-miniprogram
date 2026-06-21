@@ -1,0 +1,187 @@
+const app = getApp();
+
+Page({
+  data: {
+    trips: [],
+    trip: null,
+    selectedId: 'shanghai',
+    strategies: app.getRouteStrategies(),
+    strategyId: 'time',
+    routePlan: {
+      strategyName: '时间优先',
+      totalText: '约0分钟',
+      transitMinutes: 0,
+      transferCount: 0
+    },
+    routeSummary: '',
+    routeSteps: [],
+    routeSpots: [],
+    routeSource: 'local',
+    routeLoading: false,
+    routeError: ''
+  },
+
+  onLoad(options) {
+    const selectedId = options.id || 'shanghai';
+    this.setTrip(selectedId);
+  },
+
+  setTrip(id) {
+    const trips = app.getTrips();
+    const rawTrip = trips.find(item => item.id === id) || trips[0];
+    const trip = {
+      ...rawTrip,
+      isCustom: rawTrip.id.startsWith('custom-')
+    };
+    wx.setNavigationBarTitle({
+      title: `${trip.city}行程`
+    });
+    this.setData({
+      trips,
+      trip,
+      selectedId: trip.id
+    });
+    this.buildRoute();
+  },
+
+  chooseTrip(event) {
+    this.setTrip(event.currentTarget.dataset.id);
+  },
+
+  chooseStrategy(event) {
+    this.setData({
+      strategyId: event.currentTarget.dataset.id
+    });
+    this.buildRoute();
+  },
+
+  buildRoute() {
+    const trip = this.data.trip;
+    if (!trip) {
+      return;
+    }
+    const routePlan = app.buildRoutePlan(trip, this.data.strategyId);
+    const routeSteps = routePlan.segments.map((item, index) => {
+      return {
+        title: item.title,
+        desc: item.desc,
+        mode: item.mode,
+        minutes: item.minutes,
+        active: index === 0
+      };
+    });
+    if (routePlan.orderedAttractions.length) {
+      const last = routePlan.orderedAttractions[routePlan.orderedAttractions.length - 1];
+      routeSteps.push({
+        title: `${last.name}收尾`,
+        desc: '完成当天最后一站后，按住宿位置选择返程方式。',
+        mode: '返程',
+        minutes: 0,
+        active: routeSteps.length === 0
+      });
+    }
+    this.setData({
+      routePlan,
+      routeSummary: routePlan.summary,
+      routeSteps,
+      routeSpots: routePlan.orderedAttractions,
+      routeSource: routePlan.source || 'local',
+      routeError: routePlan.errorMessage || ''
+    });
+  },
+
+  applyRoutePlan(routePlan) {
+    const routeSteps = routePlan.segments.map((item, index) => ({
+      title: item.title,
+      desc: item.desc,
+      mode: item.mode,
+      minutes: item.minutes,
+      active: index === 0
+    }));
+    if (routePlan.orderedAttractions.length) {
+      const last = routePlan.orderedAttractions[routePlan.orderedAttractions.length - 1];
+      routeSteps.push({
+        title: `${last.name}收尾`,
+        desc: '完成当天最后一站后，按住宿位置选择返程方式。',
+        mode: '返程',
+        minutes: 0,
+        active: routeSteps.length === 0
+      });
+    }
+    this.setData({
+      routePlan,
+      routeSummary: routePlan.summary,
+      routeSteps,
+      routeSpots: routePlan.orderedAttractions,
+      routeSource: routePlan.source || 'local',
+      routeError: routePlan.errorMessage || ''
+    });
+  },
+
+  fetchTencentRoute() {
+    if (!this.data.trip || this.data.routeLoading) {
+      return;
+    }
+    this.setData({
+      routeLoading: true,
+      routeError: ''
+    });
+    app.buildTencentRoutePlan(this.data.trip, this.data.strategyId)
+      .then(routePlan => {
+        this.applyRoutePlan(routePlan);
+        if (routePlan.source === 'tencent') {
+          wx.showToast({
+            title: '已生成腾讯路线',
+            icon: 'success'
+          });
+        } else {
+          wx.showToast({
+            title: '已显示本地路线',
+            icon: 'none'
+          });
+        }
+      })
+      .catch(error => {
+        this.setData({
+          routeError: error.message || '腾讯地图路线暂不可用'
+        });
+      })
+      .then(() => {
+        this.setData({
+          routeLoading: false
+        });
+      });
+  },
+
+  openChecklist() {
+    wx.switchTab({
+      url: '/pages/checklist/checklist'
+    });
+  },
+
+  deleteTrip() {
+    if (!this.data.trip || !this.data.trip.isCustom) {
+      wx.showToast({
+        title: '预设行程不可删除',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.showModal({
+      title: '删除行程',
+      content: `确认删除“${this.data.trip.city}”行程吗？`,
+      success: result => {
+        if (result.confirm) {
+          app.removeCustomTrip(this.data.trip.id);
+          const firstTrip = app.getTrips()[0];
+          wx.showToast({
+            title: '已删除',
+            icon: 'success'
+          });
+          this.setTrip(firstTrip.id);
+        }
+      }
+    });
+  }
+});
