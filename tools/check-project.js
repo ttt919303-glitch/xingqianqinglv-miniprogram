@@ -46,12 +46,21 @@ function checkJsonFiles() {
 
 function checkMiniProgramStructure() {
   const appJson = readJson('app.json');
+  if (appJson.pages.length < 4 || appJson.pages.length > 10) {
+    throw new Error(`页面数量应控制在 4 至 10 页之间，当前为 ${appJson.pages.length} 页`);
+  }
   appJson.pages.forEach(page => {
     ['js', 'json', 'wxml', 'wxss'].forEach(ext => assertFile(`${page}.${ext}`));
   });
+  const iconPaths = new Set();
   appJson.tabBar.list.forEach(item => {
     assertFile(item.iconPath);
     assertFile(item.selectedIconPath);
+    const key = `${item.iconPath}|${item.selectedIconPath}`;
+    if (iconPaths.has(key)) {
+      throw new Error(`底部导航图标重复：${item.text}`);
+    }
+    iconPaths.add(key);
   });
 }
 

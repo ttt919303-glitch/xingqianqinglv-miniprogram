@@ -18,6 +18,7 @@ App({
         id: 'shanghai',
         city: '上海',
         dateRange: '7月3日 - 7月4日',
+        startDate: '2026-07-03',
         daysLeft: 29,
         coverTheme: 'city',
         traffic: '高铁 G7012',
@@ -38,6 +39,7 @@ App({
         id: 'hangzhou',
         city: '杭州',
         dateRange: '7月9日 - 7月10日',
+        startDate: '2026-07-09',
         daysLeft: 35,
         coverTheme: 'lake',
         traffic: '动车 D3145',
@@ -58,6 +60,7 @@ App({
         id: 'suzhou',
         city: '苏州',
         dateRange: '7月16日 - 7月17日',
+        startDate: '2026-07-16',
         daysLeft: 42,
         coverTheme: 'garden',
         traffic: '城际列车 C3856',
@@ -183,13 +186,36 @@ App({
     wx.setStorageSync('packedIds', Array.from(new Set(ids)));
   },
 
+  getTodayDate(input) {
+    const date = input ? new Date(input) : new Date();
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  },
+
+  calculateDaysLeft(startDate, todayInput) {
+    const parts = String(startDate || '').split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) {
+      return 0;
+    }
+    const target = new Date(parts[0], parts[1] - 1, parts[2]);
+    const today = this.getTodayDate(todayInput);
+    return Math.max(0, Math.ceil((target - today) / 86400000));
+  },
+
+  withComputedTrip(trip, todayInput) {
+    return {
+      ...trip,
+      daysLeft: trip.startDate ? this.calculateDaysLeft(trip.startDate, todayInput) : trip.daysLeft
+    };
+  },
+
   getTrips() {
     const customTrips = wx.getStorageSync('customTrips') || [];
     const overrides = wx.getStorageSync('tripOverrides') || {};
-    return this.globalData.trips.concat(customTrips).map(trip => ({
-      ...trip,
-      ...(overrides[trip.id] || {})
-    }));
+    return this.globalData.trips.concat(customTrips)
+      .map(trip => this.withComputedTrip({
+        ...trip,
+        ...(overrides[trip.id] || {})
+      }));
   },
 
   getCategories() {

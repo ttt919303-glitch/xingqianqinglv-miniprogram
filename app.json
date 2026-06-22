@@ -33,8 +33,8 @@
       {
         "pagePath": "pages/plan/plan",
         "text": "路线",
-        "iconPath": "assets/tabbar/template.png",
-        "selectedIconPath": "assets/tabbar/template-active.png"
+        "iconPath": "assets/tabbar/route.png",
+        "selectedIconPath": "assets/tabbar/route-active.png"
       },
       {
         "pagePath": "pages/checklist/checklist",
@@ -45,8 +45,8 @@
       {
         "pagePath": "pages/bills/bills",
         "text": "账单",
-        "iconPath": "assets/tabbar/template.png",
-        "selectedIconPath": "assets/tabbar/template-active.png"
+        "iconPath": "assets/tabbar/bill.png",
+        "selectedIconPath": "assets/tabbar/bill-active.png"
       },
       {
         "pagePath": "pages/profile/profile",

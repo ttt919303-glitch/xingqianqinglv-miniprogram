@@ -688,3 +688,25 @@ test('重置用户数据会清空自定义内容并恢复默认打包状态', ()
   assert.strictEqual(env.wx.getStorageSync('preferredCategoryId'), '');
   assert.strictEqual(JSON.stringify(env.app.getPackedIds()), JSON.stringify(env.app.getDefaultPackedIds()));
 });
+
+test('页面总数不超过十页且路线账单使用不同导航图标', () => {
+  const appJson = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8'));
+  const routeTab = appJson.tabBar.list.find(item => item.text === '路线');
+  const billTab = appJson.tabBar.list.find(item => item.text === '账单');
+
+  assert.strictEqual(appJson.pages.length, 10);
+  assert.ok(routeTab.iconPath.includes('route'));
+  assert.ok(billTab.iconPath.includes('bill'));
+  assert.notStrictEqual(routeTab.iconPath, billTab.iconPath);
+  assert.notStrictEqual(routeTab.selectedIconPath, billTab.selectedIconPath);
+});
+
+test('示例行程倒计时会根据 startDate 自动计算', () => {
+  const env = loadMiniProgram();
+  const today = new Date(2026, 5, 23);
+
+  assert.strictEqual(env.app.calculateDaysLeft('2026-07-03', today), 10);
+  assert.strictEqual(env.app.calculateDaysLeft('2026-07-09', today), 16);
+  assert.strictEqual(env.app.calculateDaysLeft('2026-07-16', today), 23);
+  assert.strictEqual(env.app.withComputedTrip({ city: '上海', startDate: '2026-07-03', daysLeft: 29 }, today).daysLeft, 10);
+});
