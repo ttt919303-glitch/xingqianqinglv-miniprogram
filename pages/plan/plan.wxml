@@ -8,11 +8,18 @@
   <view class="plan-hero card">
     <view>
       <view class="title">{{trip.city}}</view>
-      <view class="subtitle">{{trip.dateRange}}</view>
+      <view class="subtitle">{{trip.dateRange}} · {{trip.activeDayTitle}}</view>
     </view>
     <view class="hero-actions">
       <view class="date-badge">{{trip.daysLeft}}天</view>
       <button class="mini-btn" bindtap="openDetail">详情</button>
+    </view>
+  </view>
+
+  <view class="day-tabs">
+    <view wx:for="{{dayTabs}}" wx:key="id" class="day-tab {{selectedDayIndex === index ? 'active' : ''}}" bindtap="chooseDay" data-index="{{index}}">
+      <view class="day-title">{{item.title}}</view>
+      <view class="day-count">{{item.attractions.length}} 个景点</view>
     </view>
   </view>
 
@@ -31,9 +38,47 @@
     <view class="section-title">当天景点</view>
     <button class="mini-btn" bindtap="toggleEditMode">{{editMode ? '完成' : '编辑顺序'}}</button>
   </view>
+  <view class="spot-form card">
+    <view class="form-title">{{editingSpotIndex >= 0 ? '编辑景点' : '新增景点'}}</view>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">时间</view>
+        <input value="{{spotForm.time}}" data-field="time" placeholder="09:30" bindinput="onSpotInput" />
+      </view>
+      <view class="field">
+        <view class="label">景点</view>
+        <input value="{{spotForm.name}}" data-field="name" placeholder="例如：上海博物馆" bindinput="onSpotInput" />
+      </view>
+    </view>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">区域</view>
+        <input value="{{spotForm.area}}" data-field="area" placeholder="人民广场" bindinput="onSpotInput" />
+      </view>
+      <view class="field">
+        <view class="label">停留分钟</view>
+        <input type="number" value="{{spotForm.stayMinutes}}" data-field="stayMinutes" placeholder="90" bindinput="onSpotInput" />
+      </view>
+    </view>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">推荐时段</view>
+        <input value="{{spotForm.bestPeriod}}" data-field="bestPeriod" placeholder="上午 / 下午 / 夜晚" bindinput="onSpotInput" />
+      </view>
+      <view class="field">
+        <view class="label">备注</view>
+        <input value="{{spotForm.note}}" data-field="note" placeholder="游玩重点或预约信息" bindinput="onSpotInput" />
+      </view>
+    </view>
+    <view class="spot-form-actions">
+      <button class="primary-btn compact-btn" bindtap="saveSpot">{{editingSpotIndex >= 0 ? '保存景点' : '加入行程'}}</button>
+      <button wx:if="{{editingSpotIndex >= 0}}" class="ghost-btn compact-btn" bindtap="resetSpotForm">取消编辑</button>
+    </view>
+  </view>
   <view class="timeline card">
     <view class="timeline-summary">{{timeline.summary}}</view>
     <view wx:for="{{timeline.conflicts}}" wx:key="*this" class="conflict-tip">{{item}}</view>
+    <view wx:if="{{!timeline.items.length}}" class="empty">这一天还没有景点，可以先在上方添加一个想去的地点。</view>
     <view wx:for="{{timeline.items}}" wx:key="name" class="spot">
       <view class="time">{{item.timeRange}}</view>
       <view class="line-dot"></view>
@@ -44,8 +89,10 @@
         <view wx:if="{{item.transportToNext}}" class="spot-transport">下一段：{{item.transportToNext.mode}} {{item.transportToNext.minutes}} 分钟</view>
       </view>
       <view wx:if="{{editMode}}" class="spot-actions">
-        <button class="sort-btn" data-index="{{index}}" data-delta="-1" bindtap="moveSpot" disabled="{{index === 0}}">↑</button>
-        <button class="sort-btn" data-index="{{index}}" data-delta="1" bindtap="moveSpot" disabled="{{index === timeline.items.length - 1}}">↓</button>
+        <button class="sort-btn" data-index="{{item.order}}" data-delta="-1" bindtap="moveSpot" disabled="{{index === 0}}">↑</button>
+        <button class="sort-btn" data-index="{{item.order}}" data-delta="1" bindtap="moveSpot" disabled="{{index === timeline.items.length - 1}}">↓</button>
+        <button class="text-btn" data-index="{{item.order}}" bindtap="editSpot">编辑</button>
+        <button class="text-btn danger" data-index="{{item.order}}" bindtap="deleteSpot">删除</button>
       </view>
     </view>
     <view wx:if="{{editMode}}" class="edit-footer">

@@ -254,6 +254,115 @@ test('预设行程手动调整和收藏加入会持久保存', () => {
   assert.strictEqual(env.app.getTripById('shanghai').attractions.some(item => item.name === '上海博物馆'), true);
 });
 
+test('行程景点可以新增编辑删除并持久保存', () => {
+  const env = loadMiniProgram();
+
+  const addedTrip = env.app.addTripSpot('shanghai', {
+    time: '16:30',
+    name: '上海博物馆',
+    note: '雨天备用展馆',
+    area: '人民广场',
+    stayMinutes: 90,
+    bestPeriod: '下午'
+  });
+
+  assert.strictEqual(addedTrip.routeMode, 'manual');
+  assert.strictEqual(env.app.getTripById('shanghai').attractions.some(item => item.name === '上海博物馆'), true);
+
+  env.app.updateTripSpot('shanghai', 4, {
+    time: '17:00',
+    name: '上海博物馆东馆',
+    note: '看特展后再去晚餐',
+    stayMinutes: 120
+  });
+  const editedTrip = env.app.getTripById('shanghai');
+
+  assert.strictEqual(editedTrip.attractions[4].name, '上海博物馆东馆');
+  assert.strictEqual(editedTrip.attractions[4].time, '17:00');
+  assert.strictEqual(editedTrip.attractions[4].stayMinutes, 120);
+
+  env.app.removeTripSpot('shanghai', 4);
+  assert.strictEqual(env.app.getTripById('shanghai').attractions.some(item => item.name === '上海博物馆东馆'), false);
+});
+
+test('路线页可以通过表单新增编辑删除景点', () => {
+  const env = loadMiniProgram();
+  const planConfig = env.run('pages/plan/plan.js');
+  const page = createPage(planConfig, { id: 'shanghai' });
+  page.triggerLoad();
+
+  page.onSpotInput({ currentTarget: { dataset: { field: 'time' } }, detail: { value: '16:20' } });
+  page.onSpotInput({ currentTarget: { dataset: { field: 'name' } }, detail: { value: '上海博物馆' } });
+  page.onSpotInput({ currentTarget: { dataset: { field: 'note' } }, detail: { value: '雨天备用展馆' } });
+  page.onSpotInput({ currentTarget: { dataset: { field: 'area' } }, detail: { value: '人民广场' } });
+  page.onSpotInput({ currentTarget: { dataset: { field: 'stayMinutes' } }, detail: { value: '90' } });
+  page.onSpotInput({ currentTarget: { dataset: { field: 'bestPeriod' } }, detail: { value: '下午' } });
+  page.saveSpot();
+
+  assert.strictEqual(page.data.routeSpots.some(item => item.name === '上海博物馆'), true);
+
+  const index = page.data.trip.attractions.findIndex(item => item.name === '上海博物馆');
+  page.editSpot({ currentTarget: { dataset: { index } } });
+  page.onSpotInput({ currentTarget: { dataset: { field: 'name' } }, detail: { value: '上海博物馆东馆' } });
+  page.saveSpot();
+
+  assert.strictEqual(env.app.getTripById('shanghai').attractions[index].name, '上海博物馆东馆');
+
+  page.deleteSpot({ currentTarget: { dataset: { index } } });
+  assert.strictEqual(env.app.getTripById('shanghai').attractions.some(item => item.name === '上海博物馆东馆'), false);
+});
+
+test('行程可以按第几天分别管理景点', () => {
+  const env = loadMiniProgram();
+  const days = env.app.getTripDays(env.app.getTripById('shanghai'));
+
+  assert.strictEqual(days.length, 2);
+  assert.strictEqual(days[0].title, '第1天');
+  assert.strictEqual(days[1].title, '第2天');
+
+  env.app.addTripSpot('shanghai', {
+    time: '10:00',
+    name: '上海迪士尼',
+    note: '安排整天游玩',
+    area: '浦东',
+    stayMinutes: 360,
+    bestPeriod: '全天'
+  }, 1);
+
+  const firstDay = env.app.getTripForDay('shanghai', 0);
+  const secondDay = env.app.getTripForDay('shanghai', 1);
+
+  assert.strictEqual(firstDay.attractions.some(item => item.name === '上海迪士尼'), false);
+  assert.strictEqual(secondDay.attractions.some(item => item.name === '上海迪士尼'), true);
+
+  env.app.updateTripSpot('shanghai', 0, { name: '迪士尼小镇', stayMinutes: 120 }, 1);
+  assert.strictEqual(env.app.getTripForDay('shanghai', 1).attractions[0].name, '迪士尼小镇');
+
+  env.app.removeTripSpot('shanghai', 0, 1);
+  assert.strictEqual(env.app.getTripForDay('shanghai', 1).attractions.length, 0);
+});
+
+test('路线页切换日期后会把景点保存到当前天', () => {
+  const env = loadMiniProgram();
+  const planConfig = env.run('pages/plan/plan.js');
+  const page = createPage(planConfig, { id: 'shanghai' });
+  page.triggerLoad();
+
+  assert.strictEqual(page.data.dayTabs.length, 2);
+  page.chooseDay({ currentTarget: { dataset: { index: 1 } } });
+  assert.strictEqual(page.data.selectedDayIndex, 1);
+
+  page.onSpotInput({ currentTarget: { dataset: { field: 'time' } }, detail: { value: '10:00' } });
+  page.onSpotInput({ currentTarget: { dataset: { field: 'name' } }, detail: { value: '上海迪士尼' } });
+  page.onSpotInput({ currentTarget: { dataset: { field: 'note' } }, detail: { value: '安排整天游玩' } });
+  page.onSpotInput({ currentTarget: { dataset: { field: 'stayMinutes' } }, detail: { value: '360' } });
+  page.saveSpot();
+
+  assert.strictEqual(env.app.getTripForDay('shanghai', 0).attractions.some(item => item.name === '上海迪士尼'), false);
+  assert.strictEqual(env.app.getTripForDay('shanghai', 1).attractions.some(item => item.name === '上海迪士尼'), true);
+  assert.strictEqual(page.data.routeSpots.some(item => item.name === '上海迪士尼'), true);
+});
+
 test('详情页模块卡片会跳转到对应功能页', () => {
   const env = loadMiniProgram();
   const detailConfig = env.run('pages/detail/detail.js');

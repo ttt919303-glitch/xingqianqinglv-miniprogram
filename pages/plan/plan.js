@@ -5,6 +5,8 @@ Page({
     trips: [],
     trip: null,
     selectedId: 'shanghai',
+    dayTabs: [],
+    selectedDayIndex: 0,
     strategies: app.getRouteStrategies(),
     strategyId: 'time',
     routePlan: {
@@ -30,6 +32,15 @@ Page({
     },
     activeMapSpot: null,
     editMode: false,
+    editingSpotIndex: -1,
+    spotForm: {
+      time: '09:00',
+      name: '',
+      note: '',
+      area: '',
+      stayMinutes: '80',
+      bestPeriod: '灵活'
+    },
     routeSource: 'local',
     routeLoading: false,
     routeError: ''
@@ -37,21 +48,25 @@ Page({
 
   onLoad(options) {
     const selectedId = options.id || wx.getStorageSync('selectedTripId') || 'shanghai';
-    this.setTrip(selectedId);
+    const selectedDayIndex = Number(wx.getStorageSync('selectedTripDayIndex') || 0);
+    this.setTrip(selectedId, selectedDayIndex);
   },
 
   onShow() {
     const selectedId = wx.getStorageSync('selectedTripId');
     if (selectedId && selectedId !== this.data.selectedId) {
-      this.setTrip(selectedId);
+      this.setTrip(selectedId, Number(wx.getStorageSync('selectedTripDayIndex') || 0));
     }
   },
 
-  setTrip(id) {
+  setTrip(id, dayIndex = this.data.selectedDayIndex) {
     const trips = app.getTrips();
     const rawTrip = trips.find(item => item.id === id) || trips[0];
+    const dayTabs = app.getTripDays(rawTrip);
+    const selectedDayIndex = Math.min(Math.max(Number(dayIndex) || 0, 0), dayTabs.length - 1);
+    const activeTrip = app.getTripForDay(rawTrip.id, selectedDayIndex);
     const trip = {
-      ...rawTrip,
+      ...activeTrip,
       isCustom: rawTrip.id.startsWith('custom-')
     };
     wx.setNavigationBarTitle({
@@ -60,14 +75,23 @@ Page({
     this.setData({
       trips,
       trip,
-      selectedId: trip.id
+      selectedId: trip.id,
+      dayTabs,
+      selectedDayIndex
     });
     this.buildRoute();
   },
 
   chooseTrip(event) {
     wx.setStorageSync('selectedTripId', event.currentTarget.dataset.id);
-    this.setTrip(event.currentTarget.dataset.id);
+    wx.setStorageSync('selectedTripDayIndex', 0);
+    this.setTrip(event.currentTarget.dataset.id, 0);
+  },
+
+  chooseDay(event) {
+    const index = Number(event.currentTarget.dataset.index);
+    wx.setStorageSync('selectedTripDayIndex', index);
+    this.setTrip(this.data.selectedId, index);
   },
 
   chooseStrategy(event) {
@@ -92,6 +116,94 @@ Page({
     this.setData({
       activeMapSpot: spot
     });
+  },
+
+  resetSpotForm() {
+    this.setData({
+      editingSpotIndex: -1,
+      spotForm: {
+        time: '09:00',
+        name: '',
+        note: '',
+        area: '',
+        stayMinutes: '80',
+        bestPeriod: '灵活'
+      }
+    });
+  },
+
+  onSpotInput(event) {
+    const field = event.currentTarget.dataset.field;
+    this.setData({
+      spotForm: {
+        ...this.data.spotForm,
+        [field]: event.detail.value
+      }
+    });
+  },
+
+  editSpot(event) {
+    const index = Number(event.currentTarget.dataset.index);
+    const spot = (this.data.trip.attractions || [])[index];
+    if (!spot) {
+      return;
+    }
+    this.setData({
+      editingSpotIndex: index,
+      spotForm: {
+        time: spot.time || '09:00',
+        name: spot.name || '',
+        note: spot.note || '',
+        area: spot.area || '',
+        stayMinutes: String(spot.stayMinutes || 80),
+        bestPeriod: spot.bestPeriod || '灵活'
+      }
+    });
+  },
+
+  saveSpot() {
+    const form = this.data.spotForm;
+    if (!form.name.trim()) {
+      wx.showToast({
+        title: '请填写景点名称',
+        icon: 'none'
+      });
+      return;
+    }
+    const isEditing = this.data.editingSpotIndex >= 0;
+    const nextTrip = isEditing
+      ? app.updateTripSpot(this.data.trip.id, this.data.editingSpotIndex, form, this.data.selectedDayIndex)
+      : app.addTripSpot(this.data.trip.id, form, this.data.selectedDayIndex);
+    const activeTrip = app.getTripForDay(nextTrip.id, this.data.selectedDayIndex);
+    this.setData({
+      trip: {
+        ...activeTrip,
+        isCustom: nextTrip.id.startsWith('custom-')
+      },
+      strategyId: 'manual',
+      editMode: true
+    });
+    this.resetSpotForm();
+    this.buildRoute();
+    wx.showToast({
+      title: isEditing ? '景点已更新' : '景点已加入',
+      icon: 'success'
+    });
+  },
+
+  deleteSpot(event) {
+    const nextTrip = app.removeTripSpot(this.data.trip.id, event.currentTarget.dataset.index, this.data.selectedDayIndex);
+    const activeTrip = app.getTripForDay(nextTrip.id, this.data.selectedDayIndex);
+    this.setData({
+      trip: {
+        ...activeTrip,
+        isCustom: nextTrip.id.startsWith('custom-')
+      },
+      strategyId: 'manual',
+      editMode: true
+    });
+    this.resetSpotForm();
+    this.buildRoute();
   },
 
   focusRouteMap() {
@@ -196,18 +308,24 @@ Page({
   },
 
   toggleEditMode() {
+    const editMode = !this.data.editMode;
     this.setData({
-      editMode: !this.data.editMode
+      editMode,
+      strategyId: editMode ? 'manual' : this.data.strategyId
     });
+    if (editMode) {
+      this.buildRoute();
+    }
   },
 
   moveSpot(event) {
     const index = Number(event.currentTarget.dataset.index);
     const delta = Number(event.currentTarget.dataset.delta);
-    const nextTrip = app.moveTripSpot(this.data.trip.id, index, delta);
+    const nextTrip = app.moveTripSpot(this.data.trip.id, index, delta, this.data.selectedDayIndex);
+    const activeTrip = app.getTripForDay(nextTrip.id, this.data.selectedDayIndex);
     this.setData({
       trip: {
-        ...nextTrip,
+        ...activeTrip,
         isCustom: nextTrip.id.startsWith('custom-')
       },
       strategyId: 'manual'

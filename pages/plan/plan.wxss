@@ -42,6 +42,40 @@
   gap: 16rpx;
 }
 
+.day-tabs {
+  display: flex;
+  gap: 16rpx;
+  margin: 24rpx 0 0;
+  overflow-x: auto;
+}
+
+.day-tab {
+  min-width: 172rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 24rpx;
+  background: #ffffff;
+  color: #687382;
+  border: 1rpx solid #dfe8f3;
+  box-shadow: 0 8rpx 20rpx rgba(31, 45, 61, 0.06);
+}
+
+.day-tab.active {
+  background: #4a9fe8;
+  color: #ffffff;
+  border-color: #4a9fe8;
+}
+
+.day-title {
+  font-size: 26rpx;
+  font-weight: 900;
+}
+
+.day-count {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  opacity: 0.82;
+}
+
 .mini-btn {
   min-width: 112rpx;
   height: 58rpx;
@@ -74,6 +108,58 @@
 
 .section-head .section-title {
   margin: 0;
+}
+
+.spot-form {
+  margin: 20rpx 0 24rpx;
+  padding: 28rpx;
+}
+
+.form-title {
+  margin-bottom: 20rpx;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18rpx;
+}
+
+.field {
+  margin-bottom: 18rpx;
+}
+
+.label {
+  margin-bottom: 10rpx;
+  color: #7b8492;
+  font-size: 23rpx;
+  font-weight: 800;
+}
+
+.field input {
+  width: 100%;
+  height: 72rpx;
+  padding: 0 20rpx;
+  border-radius: 20rpx;
+  background: #f7fbff;
+  color: #20242a;
+  font-size: 25rpx;
+}
+
+.spot-form-actions {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 4rpx;
+}
+
+.compact-btn {
+  flex: 1;
+  height: 76rpx;
+  line-height: 76rpx;
+  margin: 0;
+  font-size: 26rpx;
 }
 
 .section-mini {
@@ -230,6 +316,23 @@
 
 .sort-btn[disabled] {
   opacity: 0.35;
+}
+
+.text-btn {
+  width: 76rpx;
+  height: 46rpx;
+  line-height: 46rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 999rpx;
+  background: #f7fbff;
+  color: #3388cf;
+  font-size: 21rpx;
+  font-weight: 900;
+}
+
+.text-btn.danger {
+  color: #d45b5b;
 }
 
 .edit-footer {

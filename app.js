@@ -493,7 +493,7 @@ App({
       const meta = this.getAttractionMeta(item.name);
       return {
         ...item,
-        order: index,
+        order: Number(item.order ?? index),
         area: item.area || meta.area || `区域${index + 1}`,
         x: Number(item.x ?? meta.x ?? index * 2),
         y: Number(item.y ?? meta.y ?? index),
@@ -712,6 +712,55 @@ App({
     return newTrip;
   },
 
+  getTripDayCount(trip) {
+    if (Array.isArray(trip.itineraryDays) && trip.itineraryDays.length) {
+      return trip.itineraryDays.length;
+    }
+    const matched = String(trip.dateRange || '').match(/(\d+)月(\d+)日\s*-\s*(?:(\d+)月)?(\d+)日/);
+    if (!matched) {
+      return 1;
+    }
+    const startMonth = Number(matched[1]);
+    const startDay = Number(matched[2]);
+    const endMonth = Number(matched[3] || matched[1]);
+    const endDay = Number(matched[4]);
+    if (!startMonth || !startDay || !endMonth || !endDay) {
+      return 1;
+    }
+    const start = new Date(2026, startMonth - 1, startDay);
+    const end = new Date(2026, endMonth - 1, endDay);
+    return Math.max(1, Math.round((end - start) / 86400000) + 1);
+  },
+
+  getTripDays(trip) {
+    const savedDays = Array.isArray(trip.itineraryDays) ? trip.itineraryDays : [];
+    const dayCount = Math.max(this.getTripDayCount(trip), savedDays.length, 1);
+    return Array.from({ length: dayCount }).map((_, index) => {
+      const savedDay = savedDays[index] || {};
+      const attractions = savedDay.attractions || (index === 0 ? (trip.attractions || []) : []);
+      return {
+        id: savedDay.id || `day-${index + 1}`,
+        title: savedDay.title || `第${index + 1}天`,
+        dateLabel: savedDay.dateLabel || '',
+        attractions
+      };
+    });
+  },
+
+  getTripForDay(tripId, dayIndex = 0) {
+    const trip = typeof tripId === 'string' ? this.getTripById(tripId) : tripId;
+    const days = this.getTripDays(trip);
+    const index = Math.min(Math.max(Number(dayIndex) || 0, 0), days.length - 1);
+    const day = days[index] || days[0];
+    return {
+      ...trip,
+      selectedDayIndex: index,
+      activeDayTitle: day.title,
+      dayTabs: days,
+      attractions: day.attractions || []
+    };
+  },
+
   getTripById(id) {
     return this.getTrips().find(item => item.id === id) || this.getTrips()[0];
   },
@@ -743,8 +792,8 @@ App({
     return nextTrips.find(item => item.id === id) || this.getTripById(id);
   },
 
-  moveTripSpot(tripId, index, delta) {
-    const trip = this.getTripById(tripId);
+  moveTripSpot(tripId, index, delta, dayIndex = 0) {
+    const trip = this.getTripForDay(tripId, dayIndex);
     const attractions = (trip.attractions || []).slice();
     const fromIndex = Number(index);
     const toIndex = fromIndex + Number(delta);
@@ -753,14 +802,80 @@ App({
     }
     const moved = attractions.splice(fromIndex, 1)[0];
     attractions.splice(toIndex, 0, moved);
-    const routePlan = this.buildRoutePlan({ ...trip, attractions }, 'manual');
-    const routeHint = `${routePlan.summary} 已按手动顺序重新估算。`;
-    return this.saveTripPatch(tripId, {
-      attractions,
+    return this.saveTripAttractions(tripId, attractions, '已按手动顺序重新估算。', dayIndex);
+  },
+
+  normalizeTripSpot(data, index) {
+    const name = (data.name || '').trim() || `景点${index + 1}`;
+    const meta = this.getAttractionMeta(name);
+    return {
+      time: data.time || this.addMinutesToTime('09:00', index * 150),
+      name,
+      note: data.note || '按当天体力和交通情况灵活调整',
+      area: data.area || meta.area || '',
+      stayMinutes: Number(data.stayMinutes || meta.stayMinutes) || 80,
+      bestPeriod: data.bestPeriod || meta.bestPeriod || '灵活',
+      x: data.x ?? meta.x,
+      y: data.y ?? meta.y,
+      lat: data.lat,
+      lng: data.lng
+    };
+  },
+
+  saveTripAttractions(tripId, attractions, message, dayIndex = 0) {
+    const trip = this.getTripById(tripId);
+    const days = this.getTripDays(trip);
+    const activeDayIndex = Math.min(Math.max(Number(dayIndex) || 0, 0), days.length - 1);
+    const normalized = attractions.map((item, index) => this.normalizeTripSpot(item, index));
+    const routePlan = this.buildRoutePlan({ ...trip, attractions: normalized }, 'manual');
+    const itineraryDays = days.map((day, index) => ({
+      ...day,
+      attractions: index === activeDayIndex ? normalized : (day.attractions || [])
+    }));
+    const patch = {
+      itineraryDays,
       routePlan,
-      routeHint,
+      routeHint: `${routePlan.summary} ${message}`,
       routeMode: 'manual'
+    };
+    if (activeDayIndex === 0) {
+      patch.attractions = normalized;
+    }
+    return this.saveTripPatch(tripId, {
+      ...patch
     });
+  },
+
+  addTripSpot(tripId, data, dayIndex = 0) {
+    const trip = this.getTripForDay(tripId, dayIndex);
+    const attractions = (trip.attractions || []).slice();
+    attractions.push(this.normalizeTripSpot(data || {}, attractions.length));
+    return this.saveTripAttractions(tripId, attractions, '已新增景点。', dayIndex);
+  },
+
+  updateTripSpot(tripId, index, data, dayIndex = 0) {
+    const trip = this.getTripForDay(tripId, dayIndex);
+    const spotIndex = Number(index);
+    const attractions = (trip.attractions || []).slice();
+    if (spotIndex < 0 || spotIndex >= attractions.length) {
+      return trip;
+    }
+    attractions[spotIndex] = this.normalizeTripSpot({
+      ...attractions[spotIndex],
+      ...(data || {})
+    }, spotIndex);
+    return this.saveTripAttractions(tripId, attractions, '已更新景点。', dayIndex);
+  },
+
+  removeTripSpot(tripId, index, dayIndex = 0) {
+    const trip = this.getTripForDay(tripId, dayIndex);
+    const spotIndex = Number(index);
+    const attractions = (trip.attractions || []).slice();
+    if (spotIndex < 0 || spotIndex >= attractions.length) {
+      return trip;
+    }
+    attractions.splice(spotIndex, 1);
+    return this.saveTripAttractions(tripId, attractions, '已删除景点。', dayIndex);
   },
 
   addMinutesToTime(time, minutes) {
