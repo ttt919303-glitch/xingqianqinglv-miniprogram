@@ -94,6 +94,26 @@ Page({
     });
   },
 
+  focusRouteMap() {
+    const polylines = this.data.mapPreview.polyline || [];
+    const markers = this.data.mapPreview.markers || [];
+    const points = polylines[0] && polylines[0].points && polylines[0].points.length
+      ? polylines[0].points
+      : markers.map(item => ({ latitude: item.latitude, longitude: item.longitude }));
+
+    if (!points.length || typeof wx.createMapContext !== 'function') {
+      return;
+    }
+
+    const mapContext = wx.createMapContext('routeMap', this);
+    if (mapContext && typeof mapContext.includePoints === 'function') {
+      mapContext.includePoints({
+        points,
+        padding: [48, 32, 48, 32]
+      });
+    }
+  },
+
   buildRoute() {
     const trip = this.data.trip;
     if (!trip) {

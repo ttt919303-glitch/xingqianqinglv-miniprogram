@@ -12,7 +12,7 @@
         <view class="title">即将出发</view>
         <view class="subtitle">{{trips.length}} 个行程 · {{progress.percent}}% 已准备</view>
       </view>
-      <view class="hero-badge">晴旅</view>
+      <view class="hero-badge">春游</view>
     </view>
 
     <swiper class="trip-swiper" current="{{current}}" previous-margin="38rpx" next-margin="38rpx" bindchange="onTripChange">

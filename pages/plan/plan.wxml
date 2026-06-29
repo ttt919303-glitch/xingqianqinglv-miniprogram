@@ -71,18 +71,23 @@
     <view wx:if="{{routeError}}" class="route-error">{{routeError}}</view>
     <view class="map-preview">
       <map
+        id="routeMap"
         class="route-map"
         latitude="{{mapPreview.latitude}}"
         longitude="{{mapPreview.longitude}}"
         scale="{{mapPreview.scale}}"
         markers="{{mapPreview.markers}}"
         polyline="{{mapPreview.polyline}}"
-        enable-scroll="{{false}}"
-        enable-zoom="{{false}}"
+        enable-scroll="{{true}}"
+        enable-zoom="{{true}}"
+        show-compass="{{true}}"
         show-location="{{false}}"
         bindmarkertap="tapMapMarker"
       ></map>
-      <view class="map-caption">地图预览会跟随景点顺序和路线策略刷新</view>
+      <view class="map-caption">
+        <text>{{routePlan.routeNames}}</text>
+        <button class="map-focus-btn" bindtap="focusRouteMap">适配路线</button>
+      </view>
     </view>
     <view wx:if="{{activeMapSpot}}" class="map-spot-card">
       <view class="spot-name">{{activeMapSpot.name}}</view>

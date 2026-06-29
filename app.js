@@ -11,7 +11,7 @@ const tencentMapLocalConfig = (() => {
 
 App({
   globalData: {
-    appName: '行前晴旅',
+    appName: '春日出游',
     slogan: '轻松规划每一次出发',
     trips: [
       {
@@ -305,6 +305,44 @@ App({
     };
   },
 
+  normalizeTencentCoordinate(value) {
+    const number = Number(value) || 0;
+    return Math.abs(number) > 1000 ? number / 1000000 : number;
+  },
+
+  normalizeTencentDelta(value) {
+    const number = Number(value) || 0;
+    return Math.abs(number) > 1 ? number / 1000000 : number;
+  },
+
+  roundCoordinate(value) {
+    return Number(value.toFixed(6));
+  },
+
+  decodeTencentPolyline(polyline) {
+    if (!Array.isArray(polyline) || polyline.length < 2) {
+      return [];
+    }
+
+    let latitude = this.normalizeTencentCoordinate(polyline[0]);
+    let longitude = this.normalizeTencentCoordinate(polyline[1]);
+    const points = [{
+      latitude: this.roundCoordinate(latitude),
+      longitude: this.roundCoordinate(longitude)
+    }];
+
+    for (let index = 2; index < polyline.length - 1; index += 2) {
+      latitude += this.normalizeTencentDelta(polyline[index]);
+      longitude += this.normalizeTencentDelta(polyline[index + 1]);
+      points.push({
+        latitude: this.roundCoordinate(latitude),
+        longitude: this.roundCoordinate(longitude)
+      });
+    }
+
+    return points;
+  },
+
   requestTencentMap(options) {
     return new Promise((resolve, reject) => {
       wx.request({
@@ -352,6 +390,7 @@ App({
       distance: route.distance || 0,
       distanceText: route.distance ? `${(route.distance / 1000).toFixed(1)}公里` : '距离待估',
       minutes: Number(route.duration) || localSegment.minutes,
+      polylinePoints: this.decodeTencentPolyline(route.polyline),
       desc: `${localSegment.mode}约${Number(route.duration) || localSegment.minutes}分钟，腾讯地图估算距离${route.distance ? `${(route.distance / 1000).toFixed(1)}公里` : '待估'}。`
     };
   },
@@ -499,10 +538,22 @@ App({
         tip: '适合跨区域移动，时间稳定。'
       },
       {
+        mode: '公交',
+        minutes: Math.round(20 + distance * 6),
+        cost: 2,
+        tip: '适合预算优先，注意预留等车时间。'
+      },
+      {
         mode: '打车',
         minutes: Math.round(8 + distance * 5),
         cost: Math.round(12 + distance * 8),
         tip: '更省体力，适合赶时间或多人同行。'
+      },
+      {
+        mode: '自驾',
+        minutes: Math.round(10 + distance * 5),
+        cost: Math.round(8 + distance * 5),
+        tip: '适合自驾或租车行程，注意停车位置。'
       },
       {
         mode: '骑行',
@@ -1131,6 +1182,65 @@ App({
     return centers[city] || { latitude: 31.2304, longitude: 121.4737 };
   },
 
+  sameMapPoint(a, b) {
+    return a && b && a.latitude === b.latitude && a.longitude === b.longitude;
+  },
+
+  getRouteLinePoints(routePlan, markerPoints) {
+    const segments = (routePlan && routePlan.segments) || [];
+    const routePoints = segments.reduce((list, segment) => {
+      (segment.polylinePoints || []).forEach(point => {
+        if (!this.sameMapPoint(list[list.length - 1], point)) {
+          list.push(point);
+        }
+      });
+      return list;
+    }, []);
+
+    if (routePoints.length) {
+      return routePoints;
+    }
+
+    return markerPoints.map(item => ({
+      latitude: item.latitude,
+      longitude: item.longitude
+    }));
+  },
+
+  getMapCenter(points, fallback) {
+    if (!points.length) {
+      return fallback;
+    }
+    const total = points.reduce((sum, point) => ({
+      latitude: sum.latitude + point.latitude,
+      longitude: sum.longitude + point.longitude
+    }), { latitude: 0, longitude: 0 });
+
+    return {
+      latitude: this.roundCoordinate(total.latitude / points.length),
+      longitude: this.roundCoordinate(total.longitude / points.length)
+    };
+  },
+
+  getMapScale(points) {
+    if (points.length < 2) {
+      return 13;
+    }
+    const latitudes = points.map(point => point.latitude);
+    const longitudes = points.map(point => point.longitude);
+    const span = Math.max(
+      Math.max(...latitudes) - Math.min(...latitudes),
+      Math.max(...longitudes) - Math.min(...longitudes)
+    );
+    if (span > 0.12) {
+      return 10;
+    }
+    if (span > 0.04) {
+      return 11;
+    }
+    return 13;
+  },
+
   buildRouteMapPreview(trip, routePlan) {
     const center = this.getCityMapCenter(trip.city);
     const attractions = routePlan && routePlan.orderedAttractions ? routePlan.orderedAttractions : this.normalizeAttractions(trip.attractions || []);
@@ -1140,10 +1250,12 @@ App({
       name: item.name,
       order: index + 1
     }));
+    const linePoints = this.getRouteLinePoints(routePlan, points);
+    const mapCenter = this.getMapCenter(linePoints, center);
     return {
-      latitude: points.length ? points[0].latitude : center.latitude,
-      longitude: points.length ? points[0].longitude : center.longitude,
-      scale: 12,
+      latitude: mapCenter.latitude,
+      longitude: mapCenter.longitude,
+      scale: this.getMapScale(linePoints),
       markers: points.map(item => ({
         id: item.order,
         latitude: item.latitude,
@@ -1160,8 +1272,8 @@ App({
           display: 'ALWAYS'
         }
       })),
-      polyline: points.length > 1 ? [{
-        points: points.map(item => ({ latitude: item.latitude, longitude: item.longitude })),
+      polyline: linePoints.length > 1 ? [{
+        points: linePoints,
         color: '#4A9FE8',
         width: 5,
         dottedLine: false,

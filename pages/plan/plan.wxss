@@ -327,10 +327,33 @@
 }
 
 .map-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
   padding: 16rpx 20rpx;
   color: #4a6f95;
   font-size: 23rpx;
   font-weight: 800;
+}
+
+.map-caption text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.45;
+}
+
+.map-focus-btn {
+  width: 148rpx;
+  height: 52rpx;
+  line-height: 52rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 999rpx;
+  background: #ffffff;
+  color: #2d7fc3;
+  font-size: 22rpx;
+  font-weight: 900;
 }
 
 .map-spot-card {

@@ -1,5 +1,5 @@
 {
-  "description": "Travel preparation mini program homework",
+  "description": "Spring outing travel assistant mini program",
   "packOptions": {
     "ignore": [],
     "include": []
@@ -41,7 +41,7 @@
   "compileType": "miniprogram",
   "libVersion": "latest",
   "appid": "wx954db165ba44ad61",
-  "projectname": "xingqianqinglv",
+  "projectname": "chunrichuyou",
   "condition": {},
   "simulatorPluginLibVersion": {},
   "editorSetting": {}

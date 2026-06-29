@@ -488,9 +488,56 @@ test('每段路线可以选择交通方式并重算时间和预算', () => {
 
   assert.strictEqual(updatedSegment.mode, '打车');
   assert.ok(updatedSegment.options.some(item => item.mode === '地铁'));
+  assert.ok(updatedSegment.options.some(item => item.mode === '公交'));
+  assert.ok(updatedSegment.options.some(item => item.mode === '自驾'));
   assert.ok(updatedSegment.cost > 0);
   assert.ok(afterPlan.transportBudget >= updatedSegment.cost);
   assert.ok(afterPlan.summary.includes('交通预算'));
+});
+
+test('腾讯地图 polyline 会解析成地图真实线路点', () => {
+  const env = loadMiniProgram();
+  const points = env.app.decodeTencentPolyline([
+    31230000,
+    121470000,
+    1000,
+    2000,
+    -500,
+    -1000
+  ]);
+
+  assert.strictEqual(JSON.stringify(points), JSON.stringify([
+    { latitude: 31.23, longitude: 121.47 },
+    { latitude: 31.231, longitude: 121.472 },
+    { latitude: 31.2305, longitude: 121.471 }
+  ]));
+});
+
+test('地图预览优先使用腾讯路线返回的 polyline', () => {
+  const env = loadMiniProgram();
+  const trip = env.app.getTripById('shanghai');
+  const routePlan = {
+    orderedAttractions: [
+      { name: '外滩', lat: 31.239, lng: 121.499 },
+      { name: '南京路步行街', lat: 31.235, lng: 121.475 }
+    ],
+    segments: [
+      {
+        polylinePoints: [
+          { latitude: 31.239, longitude: 121.499 },
+          { latitude: 31.236, longitude: 121.486 },
+          { latitude: 31.235, longitude: 121.475 }
+        ]
+      }
+    ]
+  };
+
+  const mapPreview = env.app.buildRouteMapPreview(trip, routePlan);
+
+  assert.strictEqual(mapPreview.polyline[0].points.length, 3);
+  assert.strictEqual(mapPreview.polyline[0].points[1].longitude, 121.486);
+  assert.strictEqual(mapPreview.markers.length, 2);
+  assert.strictEqual(mapPreview.latitude, 31.236667);
 });
 
 test('路线页切换分段交通方式会刷新路线步骤', () => {
