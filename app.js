@@ -1086,10 +1086,10 @@ App({
     wx.setStorageSync('favoritePlaces', places.filter(item => item.id !== id));
   },
 
-  addFavoritePlaceToTrip(placeId, tripId) {
+  addFavoritePlaceToTrip(placeId, tripId, dayIndex = 0) {
     const places = this.getFavoritePlaces();
     const place = places.find(item => item.id === placeId);
-    const trip = this.getTripById(tripId);
+    const trip = this.getTripForDay(tripId, dayIndex);
     if (!place || !trip) {
       return trip;
     }
@@ -1100,16 +1100,9 @@ App({
       stayMinutes: place.stayMinutes,
       bestPeriod: place.bestPeriod
     });
-    const routeMode = trip.routeMode === 'manual' ? 'manual' : 'time';
-    const routePlan = this.buildRoutePlan({ ...trip, attractions }, routeMode);
     const nextPlaces = places.map(item => item.id === placeId ? { ...item, status: '已安排' } : item);
     wx.setStorageSync('favoritePlaces', nextPlaces);
-    return this.saveTripPatch(tripId, {
-      attractions,
-      routePlan,
-      routeHint: `${routePlan.summary} 已加入收藏地点。`,
-      routeMode
-    });
+    return this.saveTripAttractions(tripId, attractions, '已加入收藏地点。', dayIndex);
   },
 
   getMemos(tripId) {

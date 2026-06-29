@@ -8,6 +8,13 @@
     </view>
   </view>
 
+  <view class="day-tabs">
+    <view wx:for="{{dayTabs}}" wx:key="id" class="day-tab {{selectedDayIndex === index ? 'active' : ''}}" bindtap="chooseDay" data-index="{{index}}">
+      <view>{{item.title}}</view>
+      <text>{{item.attractions.length}} 个景点</text>
+    </view>
+  </view>
+
   <view class="filter-tabs">
     <view wx:for="{{filters}}" wx:key="*this" class="filter-tab {{selectedFilter === item ? 'active' : ''}}" bindtap="chooseFilter" data-filter="{{item}}">
       {{item}}
@@ -65,7 +72,7 @@
     <view class="place-note">{{item.note}}</view>
     <view class="place-meta">建议停留 {{item.stayMinutes}} 分钟</view>
     <view class="place-actions">
-      <button class="primary-btn" bindtap="addToTrip" data-id="{{item.id}}">加入当前行程</button>
+      <button class="primary-btn" bindtap="addToTrip" data-id="{{item.id}}">加入{{selectedDayTitle}}</button>
       <button class="ghost-btn small" bindtap="editPlace" data-id="{{item.id}}">编辑</button>
       <button class="ghost-btn small danger" bindtap="deletePlace" data-id="{{item.id}}">删除</button>
     </view>

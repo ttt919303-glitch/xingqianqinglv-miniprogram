@@ -19,6 +19,37 @@
   color: #ffffff;
 }
 
+.day-tabs {
+  display: flex;
+  gap: 14rpx;
+  margin: -10rpx 0 24rpx;
+  overflow-x: auto;
+}
+
+.day-tab {
+  flex: 0 0 auto;
+  min-width: 154rpx;
+  padding: 16rpx 20rpx;
+  border-radius: 22rpx;
+  background: #ffffff;
+  color: #687382;
+  border: 1rpx solid #dfe8f3;
+  font-weight: 900;
+}
+
+.day-tab text {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 21rpx;
+  opacity: 0.78;
+}
+
+.day-tab.active {
+  background: #e7f7f4;
+  color: #269384;
+  border-color: rgba(84, 199, 184, 0.45);
+}
+
 .filter-tabs {
   display: flex;
   gap: 14rpx;

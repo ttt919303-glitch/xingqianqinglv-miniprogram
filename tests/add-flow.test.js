@@ -494,6 +494,48 @@ test('收藏地点可以一键加入当前行程', () => {
   assert.strictEqual(env.app.getFavoritePlaces().find(item => item.id === place.id).status, '已安排');
 });
 
+test('收藏地点可以加入指定第几天行程', () => {
+  const env = loadMiniProgram();
+  const place = env.app.addFavoritePlace({
+    name: '上海迪士尼',
+    city: '上海',
+    tag: '主题乐园',
+    budget: 399,
+    stayMinutes: 360,
+    bestPeriod: '全天',
+    note: '适合单独安排一天'
+  });
+
+  env.app.addFavoritePlaceToTrip(place.id, 'shanghai', 1);
+
+  assert.strictEqual(env.app.getTripForDay('shanghai', 0).attractions.some(item => item.name === '上海迪士尼'), false);
+  assert.strictEqual(env.app.getTripForDay('shanghai', 1).attractions.some(item => item.name === '上海迪士尼'), true);
+});
+
+test('收藏夹页面会把地点加入当前选择的日期', () => {
+  const env = loadMiniProgram();
+  const favoritesConfig = env.run('pages/favorites/favorites.js');
+  const page = createPage(favoritesConfig, { id: 'shanghai' });
+  page.triggerLoad();
+  page.triggerShow();
+
+  const place = env.app.addFavoritePlace({
+    name: '上海迪士尼',
+    city: '上海',
+    tag: '主题乐园',
+    budget: 399,
+    stayMinutes: 360,
+    bestPeriod: '全天',
+    note: '适合单独安排一天'
+  });
+  page.loadPlaces();
+  page.chooseDay({ currentTarget: { dataset: { index: 1 } } });
+  page.addToTrip({ currentTarget: { dataset: { id: place.id } } });
+
+  assert.strictEqual(env.app.getTripForDay('shanghai', 0).attractions.some(item => item.name === '上海迪士尼'), false);
+  assert.strictEqual(env.app.getTripForDay('shanghai', 1).attractions.some(item => item.name === '上海迪士尼'), true);
+});
+
 test('收藏夹支持筛选新增编辑和删除地点', () => {
   const env = loadMiniProgram();
 

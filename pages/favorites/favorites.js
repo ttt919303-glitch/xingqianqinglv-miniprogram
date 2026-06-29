@@ -4,6 +4,9 @@ Page({
   data: {
     tripId: '',
     trips: [],
+    dayTabs: [],
+    selectedDayIndex: 0,
+    selectedDayTitle: '第1天',
     places: [],
     filters: [],
     selectedFilter: '全部',
@@ -21,9 +24,13 @@ Page({
 
   onLoad(options) {
     const trips = app.getTrips();
+    const tripId = options.id || (trips[0] && trips[0].id) || '';
+    const trip = trips.find(item => item.id === tripId) || trips[0];
     this.setData({
       trips,
-      tripId: options.id || (trips[0] && trips[0].id) || ''
+      tripId,
+      dayTabs: trip ? app.getTripDays(trip) : [],
+      selectedDayTitle: trip ? app.getTripDays(trip)[0].title : '第1天'
     });
   },
 
@@ -46,14 +53,29 @@ Page({
   },
 
   chooseTrip(event) {
+    const tripId = event.currentTarget.dataset.id;
+    const trip = this.data.trips.find(item => item.id === tripId);
+    const dayTabs = trip ? app.getTripDays(trip) : [];
     this.setData({
-      tripId: event.currentTarget.dataset.id
+      tripId,
+      selectedDayIndex: 0,
+      dayTabs,
+      selectedDayTitle: dayTabs[0] ? dayTabs[0].title : '第1天'
+    });
+  },
+
+  chooseDay(event) {
+    const selectedDayIndex = Number(event.currentTarget.dataset.index);
+    const selectedDay = this.data.dayTabs[selectedDayIndex];
+    this.setData({
+      selectedDayIndex,
+      selectedDayTitle: selectedDay ? selectedDay.title : '第1天'
     });
   },
 
   addToTrip(event) {
     const placeId = event.currentTarget.dataset.id;
-    app.addFavoritePlaceToTrip(placeId, this.data.tripId);
+    app.addFavoritePlaceToTrip(placeId, this.data.tripId, this.data.selectedDayIndex);
     wx.showToast({
       title: '已加入行程',
       icon: 'success'
