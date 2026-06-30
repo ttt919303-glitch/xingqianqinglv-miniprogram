@@ -1390,22 +1390,39 @@ App({
     };
   },
 
-  getTripDetail(tripId) {
-    const trip = this.getTripById(tripId);
+  getTripDayOverview(dayTrip, routePlan, memoSummary) {
+    return {
+      title: dayTrip.activeDayTitle || '第1天',
+      spotCount: (dayTrip.attractions || []).length,
+      routeText: routePlan.routeNames || '还没有景点',
+      totalText: routePlan.totalText,
+      transitMinutes: routePlan.transitMinutes,
+      transportBudget: routePlan.transportBudget || 0,
+      memoUndone: memoSummary.undone
+    };
+  },
+
+  getTripDetail(tripId, dayIndex = 0) {
+    const baseTrip = this.getTripById(tripId);
+    const trip = this.getTripForDay(baseTrip.id, dayIndex);
     const routePlan = this.buildRoutePlan(trip, trip.routeMode === 'manual' ? 'manual' : 'time');
     const billSummary = this.getBillSummary(trip.id);
     const memoSummary = this.getMemoSummary(trip.id);
     const packingSummary = this.getOverallProgress();
     const transportCards = this.getTransportCards(trip);
+    const dayOverview = this.getTripDayOverview(trip, routePlan, memoSummary);
     return {
       trip,
+      dayTabs: trip.dayTabs || [],
+      selectedDayIndex: trip.selectedDayIndex || 0,
+      dayOverview,
       routePlan,
       transportCards,
       memoSummary,
       billSummary,
       packingSummary,
       modules: [
-        { id: 'route', name: '行程路线', desc: routePlan.totalText, url: '/pages/plan/plan' },
+        { id: 'route', name: '行程路线', desc: `${dayOverview.spotCount} 个景点 · ${routePlan.totalText}`, url: '/pages/plan/plan' },
         { id: 'transport', name: '交通卡片', desc: transportCards[0].code, url: `/pages/detail/detail?id=${trip.id}` },
         { id: 'memo', name: '旅行备忘', desc: `${memoSummary.undone} 条待办`, url: `/pages/detail/detail?id=${trip.id}` },
         { id: 'bill', name: '账单预算', desc: `已花费 ${billSummary.actualTotal}`, url: `/pages/bills/bills?id=${trip.id}` },

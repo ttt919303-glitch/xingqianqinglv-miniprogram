@@ -772,6 +772,46 @@ test('旅行详情会聚合路线、交通、备忘、账单和清单入口', ()
   assert.ok(detail.packingSummary.total > 0);
 });
 
+test('旅行详情可以按第几天展示路线总览', () => {
+  const env = loadMiniProgram();
+  env.app.addTripSpot('shanghai', {
+    time: '10:00',
+    name: '上海迪士尼',
+    note: '安排整天游玩',
+    area: '浦东',
+    stayMinutes: 360,
+    bestPeriod: '全天'
+  }, 1);
+
+  const firstDay = env.app.getTripDetail('shanghai', 0);
+  const secondDay = env.app.getTripDetail('shanghai', 1);
+
+  assert.strictEqual(secondDay.dayTabs.length, 2);
+  assert.strictEqual(firstDay.selectedDayIndex, 0);
+  assert.strictEqual(secondDay.selectedDayIndex, 1);
+  assert.strictEqual(firstDay.dayOverview.spotCount, 4);
+  assert.strictEqual(secondDay.dayOverview.spotCount, 1);
+  assert.strictEqual(secondDay.routePlan.routeNames, '上海迪士尼');
+  assert.ok(secondDay.modules.find(item => item.id === 'route').desc.includes('1 个景点'));
+});
+
+test('详情页切换日期后打开路线会记住当前日期', () => {
+  const env = loadMiniProgram();
+  const detailConfig = env.run('pages/detail/detail.js');
+  const page = createPage(detailConfig, { id: 'shanghai' });
+  page.triggerLoad();
+  page.triggerShow();
+
+  page.chooseDay({ currentTarget: { dataset: { index: 1 } } });
+  page.openRoute();
+
+  assert.strictEqual(page.data.selectedDayIndex, 1);
+  assert.strictEqual(env.storage.selectedTripDayIndex, 1);
+  assert.deepStrictEqual(env.navCalls.slice(-1), [
+    { type: 'switchTab', url: '/pages/plan/plan' }
+  ]);
+});
+
 test('腾讯地图请求会带 key 并按路线段选择接口', () => {
   const env = loadMiniProgram();
   const trip = {

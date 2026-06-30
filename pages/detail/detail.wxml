@@ -2,9 +2,41 @@
   <view class="detail-hero card">
     <view>
       <view class="title">{{detail.trip.city}}旅行计划</view>
-      <view class="subtitle">{{detail.trip.dateRange}} · {{detail.routePlan.totalText}}</view>
+      <view class="subtitle">{{detail.trip.dateRange}} · {{detail.dayOverview.title}} · {{detail.routePlan.totalText}}</view>
     </view>
     <view class="hero-sticker">手账</view>
+  </view>
+
+  <view class="day-tabs">
+    <view wx:for="{{detail.dayTabs}}" wx:key="id" class="day-tab {{selectedDayIndex === index ? 'active' : ''}}" bindtap="chooseDay" data-index="{{index}}">
+      <view class="day-title">{{item.title}}</view>
+      <view class="day-count">{{item.attractions.length}} 个景点</view>
+    </view>
+  </view>
+
+  <view class="day-overview card">
+    <view>
+      <view class="overview-title">{{detail.dayOverview.title}}安排</view>
+      <view class="overview-route">{{detail.dayOverview.routeText}}</view>
+    </view>
+    <view class="overview-grid">
+      <view>
+        <view class="overview-num">{{detail.dayOverview.spotCount}}</view>
+        <view class="overview-label">景点</view>
+      </view>
+      <view>
+        <view class="overview-num">{{detail.dayOverview.transitMinutes}}</view>
+        <view class="overview-label">交通分钟</view>
+      </view>
+      <view>
+        <view class="overview-num">¥{{detail.dayOverview.transportBudget}}</view>
+        <view class="overview-label">交通预算</view>
+      </view>
+      <view>
+        <view class="overview-num">{{detail.dayOverview.memoUndone}}</view>
+        <view class="overview-label">待办</view>
+      </view>
+    </view>
   </view>
 
   <view class="module-grid">

@@ -4,6 +4,7 @@ Page({
   data: {
     detail: null,
     tripId: '',
+    selectedDayIndex: 0,
     transportForm: {
       role: '去程',
       type: '高铁',
@@ -31,7 +32,8 @@ Page({
 
   onLoad(options) {
     this.setData({
-      tripId: options.id || 'shanghai'
+      tripId: options.id || 'shanghai',
+      selectedDayIndex: Number(wx.getStorageSync('selectedTripDayIndex') || 0)
     });
   },
 
@@ -40,20 +42,29 @@ Page({
   },
 
   loadDetail() {
-    const detail = app.getTripDetail(this.data.tripId);
+    const detail = app.getTripDetail(this.data.tripId, this.data.selectedDayIndex);
     wx.setNavigationBarTitle({
       title: `${detail.trip.city}旅行详情`
     });
     this.setData({
-      detail
+      detail,
+      selectedDayIndex: detail.selectedDayIndex
     });
   },
 
   openRoute() {
     wx.setStorageSync('selectedTripId', this.data.detail.trip.id);
+    wx.setStorageSync('selectedTripDayIndex', this.data.selectedDayIndex);
     wx.switchTab({
       url: '/pages/plan/plan'
     });
+  },
+
+  chooseDay(event) {
+    const selectedDayIndex = Number(event.currentTarget.dataset.index);
+    wx.setStorageSync('selectedTripDayIndex', selectedDayIndex);
+    this.setData({ selectedDayIndex });
+    this.loadDetail();
   },
 
   openBills() {

@@ -15,6 +15,85 @@
   transform: rotate(4deg);
 }
 
+.day-tabs {
+  display: flex;
+  gap: 16rpx;
+  margin: 24rpx 0 0;
+  overflow-x: auto;
+}
+
+.day-tab {
+  flex: 0 0 auto;
+  min-width: 172rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 24rpx;
+  background: #ffffff;
+  color: #687382;
+  border: 1rpx solid #dfe8f3;
+  box-shadow: 0 8rpx 20rpx rgba(31, 45, 61, 0.06);
+}
+
+.day-tab.active {
+  background: #4a9fe8;
+  color: #ffffff;
+  border-color: #4a9fe8;
+}
+
+.day-title {
+  font-size: 26rpx;
+  font-weight: 900;
+}
+
+.day-count {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  opacity: 0.82;
+}
+
+.day-overview {
+  margin-top: 22rpx;
+  padding: 28rpx;
+  background: #f7fbff;
+}
+
+.overview-title {
+  color: #20242a;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.overview-route {
+  margin-top: 10rpx;
+  color: #626b78;
+  line-height: 1.55;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12rpx;
+  margin-top: 22rpx;
+}
+
+.overview-grid > view {
+  padding: 16rpx 8rpx;
+  border-radius: 18rpx;
+  background: #ffffff;
+  text-align: center;
+}
+
+.overview-num {
+  color: #2d7fc3;
+  font-size: 27rpx;
+  font-weight: 900;
+}
+
+.overview-label {
+  margin-top: 6rpx;
+  color: #89919e;
+  font-size: 21rpx;
+}
+
 .module-grid,
 .split-actions {
   display: grid;
