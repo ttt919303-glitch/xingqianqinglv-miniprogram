@@ -184,6 +184,16 @@ test('新增行程保存交通和景点安排', () => {
   ]));
 });
 
+test('一键导入地点会识别自然语言行程文本', () => {
+  const env = loadMiniProgram();
+
+  const spots = env.app.parseAttractions('第一天上午外滩，中午南京路，下午豫园，晚上陆家嘴');
+
+  assert.strictEqual(JSON.stringify(spots.map(item => item.name)), JSON.stringify(['外滩', '南京路', '豫园', '陆家嘴']));
+  assert.strictEqual(JSON.stringify(spots.map(item => item.time)), JSON.stringify(['09:00', '12:00', '14:30', '19:00']));
+  assert.ok(spots[0].note.includes('第一天上午'));
+});
+
 test('品牌名称统一为春日出游并保留副标题', () => {
   const env = loadMiniProgram();
   const appJson = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8'));
@@ -316,6 +326,28 @@ test('景点上移下移后会保存顺序并重新估算时间轴', () => {
   assert.ok(timeline.items[1].startTime >= '10:');
   assert.ok(timeline.summary.includes('预计'));
   assert.strictEqual(Array.isArray(timeline.conflicts), true);
+});
+
+test('景点支持按拖动目标位置重排并刷新路线', () => {
+  const env = loadMiniProgram();
+  const trip = env.app.addTrip({
+    city: '南京',
+    dateRange: '8月5日',
+    note: '',
+    attractionsText: '09:00 夫子庙\n11:30 老门东\n14:00 中山陵'
+  });
+  const reordered = env.app.reorderTripSpot(trip.id, 0, 2);
+  const planConfig = env.run('pages/plan/plan.js');
+  const page = createPage(planConfig, { id: trip.id });
+  page.triggerLoad();
+
+  page.startDragSpot({ currentTarget: { dataset: { index: 2 } } });
+  page.dropSpot({ currentTarget: { dataset: { index: 0 } } });
+
+  assert.strictEqual(JSON.stringify(reordered.attractions.map(item => item.name)), JSON.stringify(['老门东', '中山陵', '夫子庙']));
+  assert.strictEqual(JSON.stringify(env.app.getTripById(trip.id).attractions.map(item => item.name)), JSON.stringify(['夫子庙', '老门东', '中山陵']));
+  assert.strictEqual(JSON.stringify(page.data.trip.attractions.map(item => item.name)), JSON.stringify(['夫子庙', '老门东', '中山陵']));
+  assert.strictEqual(page.data.strategyId, 'manual');
 });
 
 test('预设行程手动调整和收藏加入会持久保存', () => {
@@ -563,6 +595,62 @@ test('账单可以编辑删除并给出超支提醒', () => {
 
   env.app.removeBill(bill.id);
   assert.strictEqual(env.app.getBillSummary(trip.id).actualTotal, 0);
+});
+
+test('账单会展示路线预计交通和实际交通差额', () => {
+  const env = loadMiniProgram();
+  const firstPlan = env.app.buildRoutePlan(env.app.getTripById('shanghai'), 'time');
+  env.app.updateRouteSegmentMode('shanghai', firstPlan.segments[0].from, firstPlan.segments[0].to, '打车');
+  const routePlan = env.app.buildRoutePlan(env.app.getTripById('shanghai'), 'time');
+  env.app.applyDayAssistant('shanghai', 0, routePlan);
+  env.app.addBill('shanghai', { title: '实际打车', category: '交通', amount: routePlan.transportBudget + 40, type: 'actual' });
+
+  const summary = env.app.getBillSummary('shanghai');
+
+  assert.strictEqual(summary.routeBudget, routePlan.transportBudget);
+  assert.strictEqual(summary.trafficActual, routePlan.transportBudget + 40);
+  assert.strictEqual(summary.trafficDelta, 40);
+  assert.ok(summary.warnings.some(item => item.includes('路线交通已超预估')));
+});
+
+test('账单支持 AA 分账并统计人均金额', () => {
+  const env = loadMiniProgram();
+
+  const bill = env.app.addBill('shanghai', {
+    title: '三人午餐',
+    category: '餐饮',
+    amount: 150,
+    type: 'actual',
+    participants: 3,
+    payer: '我'
+  });
+  const summary = env.app.getBillSummary('shanghai');
+
+  assert.strictEqual(summary.bills.find(item => item.id === bill.id).shareAmount, 50);
+  assert.strictEqual(summary.aaSummary.total, 150);
+  assert.strictEqual(summary.aaSummary.participants, 3);
+  assert.strictEqual(summary.aaSummary.average, 50);
+});
+
+test('账单页可以记录 AA 人数和付款人', () => {
+  const env = loadMiniProgram();
+  const billsConfig = env.run('pages/bills/bills.js');
+  const page = createPage(billsConfig, { id: 'shanghai' });
+  page.triggerLoad();
+  page.triggerShow();
+
+  page.onTitleInput({ detail: { value: '四人晚餐' } });
+  page.onAmountInput({ detail: { value: '240' } });
+  page.onParticipantsInput({ detail: { value: '4' } });
+  page.onPayerInput({ detail: { value: '小李' } });
+  page.onCategoryChange({ detail: { value: 2 } });
+  page.saveBill();
+
+  const bill = env.app.getBillSummary('shanghai').bills.find(item => item.title === '四人晚餐');
+  assert.strictEqual(bill.participants, 4);
+  assert.strictEqual(bill.payer, '小李');
+  assert.strictEqual(bill.shareAmount, 60);
+  assert.strictEqual(page.data.summary.aaSummary.average, 60);
 });
 
 test('收藏地点可以一键加入当前行程', () => {
@@ -871,6 +959,29 @@ test('清单页可以展示并应用推荐物品库', () => {
   assert.ok(page.data.categories.some(category => category.items.some(item => item.name === '笔记本电脑')));
 });
 
+test('按天气推荐物品可以加入清单并避免重复', () => {
+  const env = loadMiniProgram();
+
+  const result = env.app.applyWeatherPacking('rain');
+  const secondResult = env.app.applyWeatherPacking('rain');
+
+  assert.ok(result.added > 0);
+  assert.strictEqual(secondResult.added, 0);
+  assert.ok(env.app.getAllItems().some(item => item.name === '防水鞋套'));
+});
+
+test('清单页可以按天气一键补充物品', () => {
+  const env = loadMiniProgram();
+  const checklistConfig = env.run('pages/checklist/checklist.js');
+  const page = createPage(checklistConfig);
+  page.triggerShow();
+
+  page.applyWeatherLibrary({ currentTarget: { dataset: { id: 'sunny' } } });
+
+  assert.ok(page.data.weatherLibraries.length >= 3);
+  assert.ok(env.app.getAllItems().some(item => item.name === '遮阳帽'));
+});
+
 test('点击地图点会显示对应景点详情提示', () => {
   const env = loadMiniProgram();
   const planConfig = env.run('pages/plan/plan.js');
@@ -881,6 +992,28 @@ test('点击地图点会显示对应景点详情提示', () => {
 
   assert.ok(page.data.activeMapSpot.name);
   assert.ok(page.data.activeMapSpot.note);
+});
+
+test('地图景点详情会展示地址开放时间门票和预约状态', () => {
+  const env = loadMiniProgram();
+  const detail = env.app.getAttractionDetail({
+    name: '外滩',
+    note: '看江景',
+    address: '中山东一路',
+    openingHours: '全天开放',
+    ticketPrice: 0,
+    reservation: '无需预约'
+  });
+  const planConfig = env.run('pages/plan/plan.js');
+  const page = createPage(planConfig, { id: 'shanghai' });
+  page.triggerLoad();
+  page.tapMapMarker({ markerId: 1 });
+
+  assert.strictEqual(detail.address, '中山东一路');
+  assert.strictEqual(detail.ticketText, '免费');
+  assert.strictEqual(page.data.activeMapSpot.openingHours, '全天开放');
+  assert.strictEqual(page.data.activeMapSpot.ticketText, '免费');
+  assert.ok(page.data.activeMapSpot.actionText.includes('加入收藏'));
 });
 
 test('旅行详情会聚合路线、交通、备忘、账单和清单入口', () => {

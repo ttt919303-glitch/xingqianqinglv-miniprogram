@@ -552,7 +552,7 @@ App({
 
   getAttractionMeta(name) {
     const metaMap = {
-      '外滩': { area: '黄浦江畔', x: 1, y: 2, stayMinutes: 70, bestPeriod: '上午' },
+      '外滩': { area: '黄浦江畔', x: 1, y: 2, stayMinutes: 70, bestPeriod: '上午', address: '中山东一路', openingHours: '全天开放', ticketPrice: 0, reservation: '无需预约' },
       '南京路步行街': { area: '黄浦江畔', x: 2, y: 2, stayMinutes: 80, bestPeriod: '中午' },
       '豫园': { area: '黄浦老城', x: 3, y: 3, stayMinutes: 90, bestPeriod: '下午' },
       '陆家嘴': { area: '浦东滨江', x: 8, y: 2, stayMinutes: 90, bestPeriod: '夜晚' },
@@ -568,6 +568,20 @@ App({
       '中山陵': { area: '钟山风景区', x: 7, y: 4, stayMinutes: 120, bestPeriod: '下午' }
     };
     return metaMap[name] || {};
+  },
+
+  getAttractionDetail(spot) {
+    const meta = this.getAttractionMeta(spot.name);
+    const price = Number(spot.ticketPrice ?? meta.ticketPrice ?? 0);
+    return {
+      ...spot,
+      address: spot.address || meta.address || '地址待补充',
+      openingHours: spot.openingHours || meta.openingHours || '开放时间待确认',
+      ticketPrice: price,
+      ticketText: price ? `¥${price}` : '免费',
+      reservation: spot.reservation || meta.reservation || '预约状态待确认',
+      actionText: '加入收藏 / 加入行程'
+    };
   },
 
   parseTimeToMinutes(time) {
@@ -912,6 +926,19 @@ App({
     return this.saveTripAttractions(tripId, attractions, '已按手动顺序重新估算。', dayIndex);
   },
 
+  reorderTripSpot(tripId, fromIndex, toIndex, dayIndex = 0) {
+    const trip = this.getTripForDay(tripId, dayIndex);
+    const attractions = (trip.attractions || []).slice();
+    const from = Number(fromIndex);
+    const to = Number(toIndex);
+    if (from < 0 || from >= attractions.length || to < 0 || to >= attractions.length || from === to) {
+      return trip;
+    }
+    const moved = attractions.splice(from, 1)[0];
+    attractions.splice(to, 0, moved);
+    return this.saveTripAttractions(tripId, attractions, '已拖动调整顺序。', dayIndex);
+  },
+
   normalizeTripSpot(data, index) {
     const name = (data.name || '').trim() || `景点${index + 1}`;
     const meta = this.getAttractionMeta(name);
@@ -1047,6 +1074,10 @@ App({
       ];
     }
 
+    if (lines.length === 1 && /[，,、；;]/.test(lines[0])) {
+      return this.parseNaturalAttractions(lines[0]);
+    }
+
     return lines.map((line, index) => {
       const matched = line.match(/^(\d{1,2}:\d{2})\s+(.+)$/);
       const time = matched ? matched[1] : `${String(9 + index * 3).padStart(2, '0')}:00`;
@@ -1058,6 +1089,33 @@ App({
         note: parts[1] || '按当天体力和交通情况灵活调整'
       };
     });
+  },
+
+  parseNaturalAttractions(text) {
+    const timeMap = [
+      { label: '上午', time: '09:00' },
+      { label: '中午', time: '12:00' },
+      { label: '下午', time: '14:30' },
+      { label: '晚上', time: '19:00' },
+      { label: '夜晚', time: '19:00' }
+    ];
+    return String(text || '')
+      .split(/[，,、；;]/)
+      .map(item => item.trim())
+      .filter(Boolean)
+      .map((item, index) => {
+        const period = timeMap.find(option => item.includes(option.label));
+        const dayMatched = item.match(/第[一二三四五六七八九十\d]+天/);
+        const name = item
+          .replace(/第[一二三四五六七八九十\d]+天/g, '')
+          .replace(/上午|中午|下午|晚上|夜晚/g, '')
+          .trim();
+        return {
+          time: period ? period.time : this.addMinutesToTime('09:00', index * 150),
+          name: name || `景点${index + 1}`,
+          note: `${dayMatched ? dayMatched[0] : '当天'}${period ? period.label : ''}导入`
+        };
+      });
   },
 
   getBills(tripId) {
@@ -1078,8 +1136,11 @@ App({
       placeName: data.placeName || '',
       note: data.note || '',
       payment: data.payment || '未填写',
-      paid: data.paid !== false
+      paid: data.paid !== false,
+      participants: Math.max(1, Number(data.participants) || 1),
+      payer: data.payer || ''
     };
+    bill.shareAmount = Math.round((bill.amount / bill.participants) * 100) / 100;
     wx.setStorageSync('tripBills', bills.concat(bill));
     return bill;
   },
@@ -1094,8 +1155,11 @@ App({
       updated = {
         ...item,
         ...patch,
-        amount: patch.amount !== undefined ? Number(patch.amount) || 0 : item.amount
+        amount: patch.amount !== undefined ? Number(patch.amount) || 0 : item.amount,
+        participants: patch.participants !== undefined ? Math.max(1, Number(patch.participants) || 1) : (item.participants || 1),
+        payer: patch.payer !== undefined ? patch.payer : item.payer
       };
+      updated.shareAmount = Math.round((updated.amount / updated.participants) * 100) / 100;
       return updated;
     });
     wx.setStorageSync('tripBills', nextBills);
@@ -1112,6 +1176,16 @@ App({
     const names = ['交通', '住宿', '餐饮', '门票', '购物', '其他'];
     const budgetTotal = bills.filter(item => item.type === 'budget').reduce((sum, item) => sum + item.amount, 0);
     const actualTotal = bills.filter(item => item.type !== 'budget').reduce((sum, item) => sum + item.amount, 0);
+    const routeBudget = bills
+      .filter(item => item.type === 'budget' && item.category === '交通' && item.title.includes('市内交通预算'))
+      .reduce((sum, item) => sum + item.amount, 0);
+    const trafficActual = bills
+      .filter(item => item.type !== 'budget' && item.category === '交通')
+      .reduce((sum, item) => sum + item.amount, 0);
+    const trafficDelta = trafficActual - routeBudget;
+    const aaBills = bills.filter(item => item.type !== 'budget' && Number(item.participants) > 1);
+    const aaTotal = aaBills.reduce((sum, item) => sum + item.amount, 0);
+    const aaParticipants = aaBills.reduce((max, item) => Math.max(max, Number(item.participants) || 1), 0);
     const categories = names.map(name => {
       const related = bills.filter(item => item.category === name);
       return {
@@ -1123,10 +1197,21 @@ App({
     const warnings = categories
       .filter(item => item.budget > 0 && item.actual > item.budget)
       .map(item => `${item.name}已超预算 ¥${item.actual - item.budget}，建议控制一下。`);
+    if (routeBudget > 0 && trafficActual > routeBudget) {
+      warnings.push(`路线交通已超预估 ¥${trafficDelta}，建议核对打车或换乘花费。`);
+    }
     return {
       budgetTotal,
       actualTotal,
       leftBudget: budgetTotal - actualTotal,
+      routeBudget,
+      trafficActual,
+      trafficDelta,
+      aaSummary: {
+        total: aaTotal,
+        participants: aaParticipants,
+        average: aaParticipants ? Math.round((aaTotal / aaParticipants) * 100) / 100 : 0
+      },
       categories,
       bills,
       warnings
@@ -1690,6 +1775,69 @@ App({
 
   applyPackingLibrary(libraryId) {
     const library = this.getPackingLibraries().find(item => item.id === libraryId);
+    if (!library) {
+      return { added: 0, skipped: 0 };
+    }
+    let added = 0;
+    let skipped = 0;
+    library.items.forEach(item => {
+      const result = this.addItem({
+        categoryId: item.categoryId,
+        name: item.name,
+        count: item.count || 1,
+        note: library.name
+      }, { unique: true });
+      if (result) {
+        added += 1;
+      } else {
+        skipped += 1;
+      }
+    });
+    return { added, skipped };
+  },
+
+  getWeatherPackingLibraries() {
+    return [
+      {
+        id: 'rain',
+        name: '雨天出行',
+        desc: '下雨、潮湿或台风季，优先补防水和替换用品。',
+        icon: '☔',
+        items: [
+          { categoryId: 'travel', name: '防水鞋套', count: 1 },
+          { categoryId: 'travel', name: '雨衣', count: 1 },
+          { categoryId: 'electronics', name: '防水收纳袋', count: 1 },
+          { categoryId: 'clothes', name: '备用袜子', count: 2 }
+        ]
+      },
+      {
+        id: 'sunny',
+        name: '晴热天气',
+        desc: '高温和强日照场景，补防晒、遮阳和补水用品。',
+        icon: '☀️',
+        items: [
+          { categoryId: 'clothes', name: '遮阳帽', count: 1 },
+          { categoryId: 'wash', name: '补涂防晒', count: 1 },
+          { categoryId: 'travel', name: '便携小风扇', count: 1 },
+          { categoryId: 'travel', name: '电解质饮料', count: 1 }
+        ]
+      },
+      {
+        id: 'cold',
+        name: '降温天气',
+        desc: '早晚温差或冷空气，补保暖和常用药。',
+        icon: '🧣',
+        items: [
+          { categoryId: 'clothes', name: '薄羽绒/外套', count: 1 },
+          { categoryId: 'clothes', name: '围巾', count: 1 },
+          { categoryId: 'medicine', name: '感冒冲剂', count: 1 }
+        ]
+      }
+    ];
+  },
+
+  applyWeatherPacking(libraryId) {
+    const library = this.getWeatherPackingLibraries().find(item => item.id === libraryId);
     if (!library) {
       return { added: 0, skipped: 0 };
     }

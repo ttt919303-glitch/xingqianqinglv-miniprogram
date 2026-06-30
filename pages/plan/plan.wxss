@@ -270,6 +270,11 @@
   min-height: 116rpx;
 }
 
+.spot.dragging {
+  border-radius: 22rpx;
+  background: #eef7ff;
+}
+
 .time {
   padding-top: 26rpx;
   color: #4a9fe8;
@@ -563,6 +568,13 @@
   padding: 18rpx 20rpx;
   border-radius: 20rpx;
   background: #fff9f0;
+}
+
+.map-detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 14rpx;
 }
 
 .route-text {

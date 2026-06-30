@@ -92,7 +92,7 @@
     <view class="timeline-summary">{{timeline.summary}}</view>
     <view wx:for="{{timeline.conflicts}}" wx:key="*this" class="conflict-tip">{{item}}</view>
     <view wx:if="{{!timeline.items.length}}" class="empty">这一天还没有景点，可以先在上方添加一个想去的地点。</view>
-    <view wx:for="{{timeline.items}}" wx:key="name" class="spot">
+    <view wx:for="{{timeline.items}}" wx:key="name" class="spot {{draggingSpotIndex === item.order ? 'dragging' : ''}}" bindlongpress="startDragSpot" bindtap="dropSpot" data-index="{{item.order}}">
       <view class="time">{{item.timeRange}}</view>
       <view class="line-dot"></view>
       <view class="spot-main">
@@ -161,6 +161,12 @@
       <view class="spot-name">{{activeMapSpot.name}}</view>
       <view class="subtitle">{{activeMapSpot.area}} · {{activeMapSpot.bestPeriod}}</view>
       <view class="spot-note">{{activeMapSpot.note}}</view>
+      <view class="spot-note">{{activeMapSpot.address}} · {{activeMapSpot.openingHours}}</view>
+      <view class="map-detail-tags">
+        <view class="pill">{{activeMapSpot.ticketText}}</view>
+        <view class="pill">{{activeMapSpot.reservation}}</view>
+        <view class="pill">{{activeMapSpot.actionText}}</view>
+      </view>
     </view>
     <view class="route-metrics">
       <view class="metric">

@@ -37,6 +37,21 @@
   font-weight: 800;
 }
 
+.route-bill-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18rpx;
+  margin-top: 18rpx;
+  padding: 24rpx;
+  background: #f6fbff;
+}
+
+.route-bill-title {
+  color: #253141;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
 .summary-item {
   text-align: center;
 }

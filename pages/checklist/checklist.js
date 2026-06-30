@@ -4,7 +4,8 @@ Page({
   data: {
     categories: [],
     progress: {},
-    packingLibraries: []
+    packingLibraries: [],
+    weatherLibraries: []
   },
 
   onShow() {
@@ -15,7 +16,8 @@ Page({
     this.setData({
       categories,
       progress: app.getOverallProgress(),
-      packingLibraries: app.getPackingLibraries()
+      packingLibraries: app.getPackingLibraries(),
+      weatherLibraries: app.getWeatherPackingLibraries()
     });
   },
 
@@ -57,6 +59,15 @@ Page({
     const result = app.applyPackingLibrary(event.currentTarget.dataset.id);
     wx.showToast({
       title: result.added ? `已加入${result.added}项` : '已在清单中',
+      icon: 'none'
+    });
+    this.onShow();
+  },
+
+  applyWeatherLibrary(event) {
+    const result = app.applyWeatherPacking(event.currentTarget.dataset.id);
+    wx.showToast({
+      title: result.added ? `已补充${result.added}项` : '已在清单中',
       icon: 'none'
     });
     this.onShow();

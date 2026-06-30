@@ -32,6 +32,7 @@ Page({
     },
     activeMapSpot: null,
     editMode: false,
+    draggingSpotIndex: -1,
     editingSpotIndex: -1,
     spotForm: {
       time: '09:00',
@@ -119,7 +120,7 @@ Page({
       return;
     }
     this.setData({
-      activeMapSpot: spot
+      activeMapSpot: app.getAttractionDetail(spot)
     });
   },
 
@@ -378,6 +379,32 @@ Page({
         isCustom: nextTrip.id.startsWith('custom-')
       },
       strategyId: 'manual'
+    });
+    this.buildRoute();
+  },
+
+  startDragSpot(event) {
+    this.setData({
+      draggingSpotIndex: Number(event.currentTarget.dataset.index),
+      editMode: true
+    });
+  },
+
+  dropSpot(event) {
+    const fromIndex = this.data.draggingSpotIndex;
+    const toIndex = Number(event.currentTarget.dataset.index);
+    if (fromIndex < 0) {
+      return;
+    }
+    const nextTrip = app.reorderTripSpot(this.data.trip.id, fromIndex, toIndex, this.data.selectedDayIndex);
+    const activeTrip = app.getTripForDay(nextTrip.id, this.data.selectedDayIndex);
+    this.setData({
+      trip: {
+        ...activeTrip,
+        isCustom: nextTrip.id.startsWith('custom-')
+      },
+      strategyId: 'manual',
+      draggingSpotIndex: -1
     });
     this.buildRoute();
   },

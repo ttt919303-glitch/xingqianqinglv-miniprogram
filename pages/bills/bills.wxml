@@ -27,6 +27,17 @@
     {{item}}
   </view>
 
+  <view class="route-bill-card card">
+    <view>
+      <view class="route-bill-title">路线交通对比</view>
+      <view class="bill-meta">预计 ¥{{summary.routeBudget}} · 实际 ¥{{summary.trafficActual}} · 差额 ¥{{summary.trafficDelta}}</view>
+    </view>
+    <view>
+      <view class="route-bill-title">AA 分账</view>
+      <view class="bill-meta">{{summary.aaSummary.participants || 0}} 人 · 人均 ¥{{summary.aaSummary.average}}</view>
+    </view>
+  </view>
+
   <view class="form-card card">
     <view class="field">
       <view class="label">账单名称</view>
@@ -66,6 +77,16 @@
         <input value="{{payment}}" placeholder="微信 / 支付宝 / 现金" bindinput="onPaymentInput" />
       </view>
       <view class="field">
+        <view class="label">AA 人数</view>
+        <input type="number" value="{{participants}}" placeholder="例如：2" bindinput="onParticipantsInput" />
+      </view>
+    </view>
+    <view class="field-row">
+      <view class="field">
+        <view class="label">付款人</view>
+        <input value="{{payer}}" placeholder="例如：我 / 小李" bindinput="onPayerInput" />
+      </view>
+      <view class="field">
         <view class="label">备注</view>
         <input value="{{note}}" placeholder="例如：两人午餐" bindinput="onNoteInput" />
       </view>
@@ -87,6 +108,7 @@
       <view class="bill-title">{{item.title}}</view>
       <view class="subtitle">{{item.category}} · {{item.type === 'budget' ? '预算' : '实际花费'}} · {{item.date || '日期待填'}}</view>
       <view class="bill-meta">{{item.placeName || '地点待填'}} · {{item.payment || '支付方式待填'}}</view>
+      <view wx:if="{{item.participants > 1}}" class="bill-meta">AA {{item.participants}} 人 · 人均 ¥{{item.shareAmount}} · {{item.payer || '付款人待填'}}</view>
       <view wx:if="{{item.note}}" class="bill-meta">{{item.note}}</view>
     </view>
     <view class="bill-right">
