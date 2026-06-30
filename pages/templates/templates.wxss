@@ -1,3 +1,69 @@
+.trip-panel {
+  margin-top: 28rpx;
+  padding: 28rpx;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-title {
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.panel-desc {
+  margin-top: 8rpx;
+  color: #626b78;
+  font-size: 24rpx;
+}
+
+.trip-scroll {
+  margin-top: 22rpx;
+  white-space: nowrap;
+}
+
+.trip-tabs {
+  display: flex;
+  gap: 16rpx;
+}
+
+.trip-tab {
+  min-width: 178rpx;
+  padding: 18rpx 22rpx;
+  border: 2rpx solid #e2e9f2;
+  border-radius: 24rpx;
+  background: #ffffff;
+}
+
+.trip-tab.active {
+  border-color: #4a9fe8;
+  background: #eaf5ff;
+  color: #1e79c2;
+}
+
+.trip-city {
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.trip-date {
+  margin-top: 6rpx;
+  color: #6d7785;
+  font-size: 22rpx;
+}
+
+.template-result {
+  margin-top: 22rpx;
+  padding: 24rpx 28rpx;
+  color: #1f7f77;
+  background: #eafaf7;
+  font-size: 26rpx;
+  line-height: 1.6;
+}
+
 .template-list {
   margin-top: 34rpx;
 }
@@ -50,6 +116,32 @@
   background: #eaf5ff;
   color: #3388cf;
   font-size: 24rpx;
+}
+
+.template-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 18rpx;
+}
+
+.summary-pill {
+  padding: 8rpx 14rpx;
+  border-radius: 14rpx;
+  background: #f6f8fb;
+  color: #536071;
+  font-size: 22rpx;
+}
+
+.template-action {
+  display: inline-flex;
+  margin-top: 22rpx;
+  padding: 12rpx 24rpx;
+  border-radius: 18rpx;
+  background: linear-gradient(135deg, #4a9fe8, #54c7b8);
+  color: #ffffff;
+  font-size: 24rpx;
+  font-weight: 800;
 }
 
 .note {

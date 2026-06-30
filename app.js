@@ -1520,6 +1520,159 @@ App({
     return { added, skipped };
   },
 
+  getTripTemplatePacks() {
+    return [
+      {
+        id: 'business',
+        items: [
+          { categoryId: 'electronics', name: '笔记本电脑', count: 1 },
+          { categoryId: 'docs', name: '会议资料', count: 1 },
+          { categoryId: 'clothes', name: '正装', count: 1 }
+        ],
+        memos: [
+          { content: '确认会议地址和参会资料', category: '出发前', remindTime: '09:00' },
+          { content: '提前预约打车或接驳车', category: '路上', remindTime: '07:30' }
+        ],
+        bills: [
+          { title: '商务交通预算', category: '交通', amount: 300, type: 'budget', note: '高铁、打车和接驳' },
+          { title: '商务住宿预算', category: '住宿', amount: 500, type: 'budget', note: '差旅住宿' }
+        ],
+        places: [
+          { name: '会议地点', tag: '商务', budget: 0, stayMinutes: 120, bestPeriod: '上午', note: '确认楼层和签到方式' }
+        ]
+      },
+      {
+        id: 'weekend',
+        items: [
+          { categoryId: 'travel', name: '墨镜', count: 1 },
+          { categoryId: 'travel', name: '折叠雨衣', count: 1 },
+          { categoryId: 'wash', name: '小样护肤品', count: 1 }
+        ],
+        memos: [
+          { content: '确认周末目的地营业时间', category: '出发前', remindTime: '20:00' },
+          { content: '提前查看天气和闭园时间', category: '出发前', remindTime: '21:00' }
+        ],
+        bills: [
+          { title: '周末餐饮预算', category: '餐饮', amount: 180, type: 'budget', note: '两天餐饮和咖啡' },
+          { title: '周末门票预算', category: '门票', amount: 120, type: 'budget', note: '展览或景区门票' }
+        ],
+        places: [
+          { name: '周末打卡点', tag: '拍照点', budget: 50, stayMinutes: 90, bestPeriod: '下午', note: '适合轻松拍照和散步' }
+        ]
+      },
+      {
+        id: 'graduate',
+        items: [
+          { categoryId: 'electronics', name: '自拍杆', count: 1 },
+          { categoryId: 'clothes', name: '拍照穿搭', count: 2 },
+          { categoryId: 'travel', name: '纪念册', count: 1 }
+        ],
+        memos: [
+          { content: '整理拍照路线和集合时间', category: '游玩', remindTime: '08:30' },
+          { content: '备份同学证件和车票信息', category: '重要事项', remindTime: '19:30' }
+        ],
+        bills: [
+          { title: '毕业旅行拍照预算', category: '其他', amount: 260, type: 'budget', note: '服装、道具和照片打印' },
+          { title: '毕业旅行餐饮预算', category: '餐饮', amount: 240, type: 'budget', note: '聚餐和小吃' }
+        ],
+        places: [
+          { name: '纪念合影点', tag: '拍照点', budget: 0, stayMinutes: 80, bestPeriod: '傍晚', note: '适合拍集体照和日落照' }
+        ]
+      },
+      {
+        id: 'family',
+        items: [
+          { categoryId: 'medicine', name: '儿童常用药', count: 1 },
+          { categoryId: 'clothes', name: '备用换洗衣物', count: 2 },
+          { categoryId: 'travel', name: '湿巾纸巾', count: 1 }
+        ],
+        memos: [
+          { content: '确认儿童证件和常用药', category: '出发前', remindTime: '19:00' },
+          { content: '预留午休和补给时间', category: '游玩', remindTime: '12:00' }
+        ],
+        bills: [
+          { title: '亲子餐饮预算', category: '餐饮', amount: 260, type: 'budget', note: '正餐、零食和饮水' },
+          { title: '亲子交通预算', category: '交通', amount: 220, type: 'budget', note: '打车和市内交通' }
+        ],
+        places: [
+          { name: '亲子休息点', tag: '亲子', budget: 30, stayMinutes: 60, bestPeriod: '中午', note: '适合补给、午休和整理随身物品' }
+        ]
+      }
+    ];
+  },
+
+  addMemoOnce(tripId, data) {
+    const content = (data.content || '').trim();
+    const exists = this.getMemos(tripId).some(item => item.content === content);
+    return content && !exists ? this.addMemo(tripId, { ...data, content }) : null;
+  },
+
+  addBillOnce(tripId, data) {
+    const title = (data.title || '').trim();
+    const type = data.type === 'budget' ? 'budget' : 'actual';
+    const exists = this.getBills(tripId).some(item => {
+      return item.title === title && item.category === data.category && item.type === type;
+    });
+    return title && !exists ? this.addBill(tripId, { ...data, title, type }) : null;
+  },
+
+  addFavoritePlaceOnce(data) {
+    const name = (data.name || '').trim();
+    const city = data.city || '';
+    const exists = this.getFavoritePlaces().some(item => item.name === name && item.city === city);
+    return name && !exists ? this.addFavoritePlace({ ...data, name, city }) : null;
+  },
+
+  applyTripTemplate(templateId, tripId) {
+    const pack = this.getTripTemplatePacks().find(item => item.id === templateId);
+    const template = this.globalData.templates.find(item => item.id === templateId);
+    const empty = { added: 0, skipped: 0 };
+    if (!pack || !tripId) {
+      return {
+        template,
+        items: empty,
+        memos: empty,
+        bills: empty,
+        places: empty,
+        totalAdded: 0
+      };
+    }
+
+    const applyGroup = (list, add) => {
+      let added = 0;
+      let skipped = 0;
+      list.forEach(item => {
+        if (add(item)) {
+          added += 1;
+        } else {
+          skipped += 1;
+        }
+      });
+      return { added, skipped };
+    };
+    const trip = this.getTripById(tripId);
+    const city = trip ? trip.city : '';
+    const items = applyGroup(pack.items, item => this.addItem({
+      ...item,
+      note: template ? template.name : '旅行模板'
+    }, { unique: true }));
+    const memos = applyGroup(pack.memos, item => this.addMemoOnce(tripId, item));
+    const bills = applyGroup(pack.bills, item => this.addBillOnce(tripId, item));
+    const places = applyGroup(pack.places, item => this.addFavoritePlaceOnce({
+      ...item,
+      city: item.city || city
+    }));
+
+    return {
+      template,
+      items,
+      memos,
+      bills,
+      places,
+      totalAdded: items.added + memos.added + bills.added + places.added
+    };
+  },
+
   addItem(data, options = {}) {
     const customItems = wx.getStorageSync('customItems') || [];
     if (options.unique) {

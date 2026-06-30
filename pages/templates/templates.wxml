@@ -2,8 +2,27 @@
   <view class="title">旅行模板</view>
   <view class="subtitle">选择适合的出行场景，快速建立准备思路</view>
 
+  <view class="trip-panel card">
+    <view class="panel-head">
+      <view>
+        <view class="panel-title">套用到行程</view>
+        <view class="panel-desc">当前：{{selectedTripName}}</view>
+      </view>
+    </view>
+    <scroll-view scroll-x class="trip-scroll">
+      <view class="trip-tabs">
+        <view wx:for="{{trips}}" wx:key="id" class="trip-tab {{selectedTripId === item.id ? 'active' : ''}}" bindtap="chooseTrip" data-id="{{item.id}}">
+          <view class="trip-city">{{item.city}}</view>
+          <view class="trip-date">{{item.dateRange}}</view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view wx:if="{{lastResultText}}" class="template-result card">{{lastResultText}}</view>
+
   <view class="template-list">
-    <view wx:for="{{templates}}" wx:key="id" class="template-card card" bindtap="useTemplate" data-id="{{item.id}}" data-name="{{item.name}}">
+    <view wx:for="{{templates}}" wx:key="id" class="template-card card" bindtap="useTemplate" data-id="{{item.id}}">
       <view class="template-icon">
         <image src="{{item.art}}" mode="aspectFit"></image>
       </view>
@@ -13,6 +32,10 @@
         <view class="template-tags">
           <view wx:for="{{item.tags}}" wx:key="*this" class="tag">{{item}}</view>
         </view>
+        <view class="template-summary">
+          <view wx:for="{{item.summary}}" wx:for-item="summary" wx:key="*this" class="summary-pill">{{summary}}</view>
+        </view>
+        <view class="template-action">套用到当前行程</view>
       </view>
     </view>
   </view>

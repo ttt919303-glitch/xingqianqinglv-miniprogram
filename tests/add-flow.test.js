@@ -897,6 +897,41 @@ test('模板物品重复套用时不会重复添加同名物品', () => {
   assert.strictEqual(travelItems.filter(item => item.name === '墨镜').length, 1);
 });
 
+test('旅行模板会一键补充清单备忘预算和收藏地点', () => {
+  const env = loadMiniProgram();
+
+  const result = env.app.applyTripTemplate('business', 'shanghai');
+  const secondResult = env.app.applyTripTemplate('business', 'shanghai');
+
+  assert.ok(result.items.added > 0);
+  assert.ok(result.memos.added > 0);
+  assert.ok(result.bills.added > 0);
+  assert.ok(result.places.added > 0);
+  assert.strictEqual(secondResult.items.added, 0);
+  assert.strictEqual(secondResult.memos.added, 0);
+  assert.strictEqual(secondResult.bills.added, 0);
+  assert.strictEqual(secondResult.places.added, 0);
+  assert.strictEqual(env.app.getAllItems().some(item => item.name === '笔记本电脑'), true);
+  assert.strictEqual(env.app.getMemos('shanghai').some(item => item.content === '确认会议地址和参会资料'), true);
+  assert.strictEqual(env.app.getBillSummary('shanghai').bills.some(item => item.title === '商务交通预算'), true);
+  assert.strictEqual(env.app.getFavoritePlaces().some(item => item.name === '会议地点'), true);
+});
+
+test('模板页会把模板套用到当前选择的行程', () => {
+  const env = loadMiniProgram();
+  const templatesConfig = env.run('pages/templates/templates.js');
+  const page = createPage(templatesConfig);
+  page.onLoad();
+
+  page.chooseTrip({ currentTarget: { dataset: { id: 'hangzhou' } } });
+  page.useTemplate({ currentTarget: { dataset: { id: 'weekend' } } });
+
+  assert.strictEqual(page.data.selectedTripId, 'hangzhou');
+  assert.strictEqual(env.app.getMemos('hangzhou').some(item => item.content === '确认周末目的地营业时间'), true);
+  assert.strictEqual(env.app.getMemos('shanghai').some(item => item.content === '确认周末目的地营业时间'), false);
+  assert.ok(page.data.lastResultText.includes('周末短途'));
+});
+
 test('可以删除自定义行程并保留预设行程', () => {
   const env = loadMiniProgram();
   const trip = env.app.addTrip({
