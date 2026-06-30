@@ -48,11 +48,16 @@
         <textarea class="qa-attractions-input" value="{{attractionsText}}" placeholder="可粘贴朋友发来的行程，每行一个地点，例如：&#10;09:30 夫子庙 - 上午先逛秦淮河&#10;14:00 中山陵 - 下午避开人流" bindinput="onAttractionsInput"></textarea>
       </view>
       <view wx:if="{{importedSpots.length}}" class="spot-preview">
+        <view class="poi-match-row">
+          <view class="poi-match-status">{{poiMatchStatus}}</view>
+          <button class="poi-match-btn" loading="{{poiMatching}}" bindtap="matchImportedPois">匹配地图坐标</button>
+        </view>
         <view wx:for="{{importedSpots}}" wx:key="name" class="spot-chip">
           <view class="spot-time">{{item.time}}</view>
           <view>
             <view class="spot-name">{{item.name}}</view>
             <view class="spot-note">{{item.note}}</view>
+            <view wx:if="{{item.address}}" class="spot-address">{{item.address}}</view>
           </view>
         </view>
       </view>

@@ -167,6 +167,7 @@
         <view class="pill">{{activeMapSpot.reservation}}</view>
         <view class="pill">{{activeMapSpot.actionText}}</view>
       </view>
+      <button class="map-spot-action" bindtap="favoriteActiveSpot">{{activeMapSpot.saved ? '已收藏' : '收藏地点'}}</button>
     </view>
     <view class="route-metrics">
       <view class="metric">

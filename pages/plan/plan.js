@@ -124,6 +124,37 @@ Page({
     });
   },
 
+  favoriteActiveSpot() {
+    const spot = this.data.activeMapSpot;
+    if (!spot) {
+      return;
+    }
+
+    const saved = app.addFavoritePlaceOnce({
+      name: spot.name,
+      city: this.data.trip ? this.data.trip.city : spot.city,
+      tag: spot.tag || '拍照点',
+      budget: spot.ticketPrice || 0,
+      stayMinutes: spot.stayMinutes || 80,
+      bestPeriod: spot.bestPeriod || '',
+      status: '想去',
+      note: spot.note || '',
+      address: spot.address || '',
+      lat: spot.lat,
+      lng: spot.lng
+    });
+    this.setData({
+      activeMapSpot: {
+        ...spot,
+        saved: true
+      }
+    });
+    wx.showToast({
+      title: saved ? '已加入收藏' : '已在收藏夹',
+      icon: 'none'
+    });
+  },
+
   resetSpotForm() {
     this.setData({
       editingSpotIndex: -1,

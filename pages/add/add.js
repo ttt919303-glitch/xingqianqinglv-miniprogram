@@ -13,6 +13,8 @@ Page({
     duration: '',
     attractionsText: '',
     importedSpots: [],
+    poiMatching: false,
+    poiMatchStatus: '',
     count: 1,
     categories: [],
     categoryIndex: 3,
@@ -81,7 +83,51 @@ Page({
     const attractionsText = event.detail.value;
     this.setData({
       attractionsText,
-      importedSpots: app.parseAttractions(attractionsText)
+      importedSpots: app.parseAttractions(attractionsText),
+      poiMatchStatus: ''
+    });
+  },
+
+  async matchImportedPois() {
+    const spots = this.data.importedSpots;
+    if (!spots.length) {
+      wx.showToast({
+        title: '请先导入地点',
+        icon: 'none'
+      });
+      return;
+    }
+
+    this.setData({
+      poiMatching: true,
+      poiMatchStatus: '正在匹配地图坐标'
+    });
+
+    let matchedCount = 0;
+    const matchedSpots = [];
+    for (const spot of spots) {
+      let nextSpot = spot;
+      try {
+        const pois = await app.searchTencentPois(spot.name, this.data.name);
+        const matched = app.matchAttractionsWithPois([spot], pois)[0];
+        if (matched && matched.lat && matched.lng) {
+          nextSpot = matched;
+          matchedCount += 1;
+        }
+      } catch (error) {
+        nextSpot = spot;
+      }
+      matchedSpots.push(nextSpot);
+    }
+
+    this.setData({
+      importedSpots: matchedSpots,
+      poiMatching: false,
+      poiMatchStatus: matchedCount ? `已匹配 ${matchedCount} 个地点坐标` : '暂未匹配到坐标，可直接保存'
+    });
+    wx.showToast({
+      title: matchedCount ? '匹配完成' : '暂无坐标',
+      icon: 'none'
     });
   },
 
@@ -133,7 +179,8 @@ Page({
         traffic: this.data.traffic,
         trafficTime: this.data.trafficTime,
         duration: this.data.duration,
-        attractionsText: this.data.attractionsText
+        attractionsText: this.data.attractionsText,
+        attractions: this.data.importedSpots
       });
     } else {
       const category = this.data.categories[this.data.categoryIndex];
@@ -161,6 +208,8 @@ Page({
       duration: '',
       attractionsText: '',
       importedSpots: [],
+      poiMatching: false,
+      poiMatchStatus: '',
       count: 1
     });
 

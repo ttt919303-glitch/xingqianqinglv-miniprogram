@@ -401,6 +401,39 @@ App({
     };
   },
 
+  normalizePlaceName(name) {
+    return String(name || '').replace(/[\s·,，。;；、-]/g, '');
+  },
+
+  findMatchingPoi(attraction, pois) {
+    const targetName = this.normalizePlaceName(attraction.name);
+    if (!targetName) {
+      return null;
+    }
+    return (pois || []).find(item => {
+      const poiName = this.normalizePlaceName(item.name || item.title);
+      return poiName === targetName || poiName.includes(targetName) || targetName.includes(poiName);
+    }) || null;
+  },
+
+  matchAttractionWithPoi(attraction, poi) {
+    const matched = this.normalizeTencentPoi(poi || {});
+    return {
+      ...attraction,
+      address: matched.address || attraction.address || '',
+      city: matched.city || attraction.city || '',
+      lat: matched.lat || attraction.lat,
+      lng: matched.lng || attraction.lng
+    };
+  },
+
+  matchAttractionsWithPois(attractions, pois) {
+    return (attractions || []).map(attraction => {
+      const poi = this.findMatchingPoi(attraction, pois);
+      return poi ? this.matchAttractionWithPoi(attraction, poi) : attraction;
+    });
+  },
+
   async searchTencentPois(keyword, city) {
     const request = this.buildTencentPoiSearchRequest(keyword, city);
     const data = await this.requestTencentMap(request);
@@ -808,7 +841,9 @@ App({
     const endDate = (data.endDate || startDate).trim();
     const dateRange = this.formatTripDateRange(startDate, endDate, (data.dateRange || '').trim());
     const note = (data.note || '').trim();
-    const attractions = this.parseAttractions(data.attractionsText);
+    const attractions = Array.isArray(data.attractions) && data.attractions.length
+      ? data.attractions.map(item => ({ ...item }))
+      : this.parseAttractions(data.attractionsText);
     const routePlan = this.buildRoutePlan({ city, attractions }, 'time');
     const newTrip = {
       id: `custom-${Date.now()}`,

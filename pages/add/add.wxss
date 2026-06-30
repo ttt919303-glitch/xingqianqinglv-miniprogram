@@ -67,6 +67,29 @@ textarea {
   margin: -8rpx 0 26rpx;
 }
 
+.poi-match-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.poi-match-status {
+  flex: 1;
+  color: #7b8492;
+  font-size: 24rpx;
+}
+
+.poi-match-btn {
+  margin: 0;
+  padding: 0 24rpx;
+  border-radius: 999rpx;
+  background: #e7f6ff;
+  color: #3388cf;
+  font-size: 24rpx;
+  line-height: 58rpx;
+}
+
 .spot-chip {
   display: grid;
   grid-template-columns: 96rpx 1fr;
@@ -90,4 +113,10 @@ textarea {
   margin-top: 6rpx;
   color: #7b8492;
   font-size: 24rpx;
+}
+
+.spot-address {
+  margin-top: 6rpx;
+  color: #54a79d;
+  font-size: 23rpx;
 }
