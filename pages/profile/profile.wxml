@@ -44,6 +44,15 @@
 
   <view class="section-title">数据管理</view>
   <view class="manage card">
+    <view class="backup-box">
+      <view class="backup-title">备份与恢复</view>
+      <textarea value="{{backupText}}" placeholder="导出后会复制备份 JSON，也可以在这里粘贴备份内容再导入" bindinput="onBackupInput"></textarea>
+      <view wx:if="{{backupStatus}}" class="backup-status">{{backupStatus}}</view>
+      <view class="backup-actions">
+        <button class="ghost-btn" bindtap="exportBackup">导出备份</button>
+        <button class="primary-btn" bindtap="importBackup">导入备份</button>
+      </view>
+    </view>
     <button class="ghost-btn" bindtap="clearPacked">清空打包勾选</button>
     <button class="primary-btn danger-btn" bindtap="resetData">恢复初始数据</button>
   </view>

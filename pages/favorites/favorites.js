@@ -17,8 +17,12 @@ Page({
       budget: '',
       stayMinutes: '80',
       bestPeriod: '灵活',
-      note: ''
+      note: '',
+      address: '',
+      lat: '',
+      lng: ''
     },
+    poiResults: [],
     editingPlaceId: ''
   },
 
@@ -107,8 +111,52 @@ Page({
         budget: String(place.budget || ''),
         stayMinutes: String(place.stayMinutes || 80),
         bestPeriod: place.bestPeriod,
-        note: place.note
+        note: place.note,
+        address: place.address || '',
+        lat: place.lat !== undefined ? String(place.lat) : '',
+        lng: place.lng !== undefined ? String(place.lng) : ''
       }
+    });
+  },
+
+  searchPlacePois() {
+    const keyword = this.data.form.name.trim();
+    if (!keyword) {
+      wx.showToast({
+        title: '请先填写地点名称',
+        icon: 'none'
+      });
+      return;
+    }
+    app.searchTencentPois(keyword, this.data.form.city || this.currentTripCity())
+      .then(results => {
+        this.setData({ poiResults: results });
+      })
+      .catch(() => {
+        wx.showToast({
+          title: '地点搜索暂不可用',
+          icon: 'none'
+        });
+      });
+  },
+
+  currentTripCity() {
+    const trip = this.data.trips.find(item => item.id === this.data.tripId);
+    return trip ? trip.city : '';
+  },
+
+  selectPlacePoi(event) {
+    const dataset = event.currentTarget.dataset;
+    this.setData({
+      form: {
+        ...this.data.form,
+        name: dataset.name,
+        city: dataset.city || this.data.form.city,
+        address: dataset.address || '',
+        lat: String(dataset.lat),
+        lng: String(dataset.lng)
+      },
+      poiResults: []
     });
   },
 
@@ -135,8 +183,12 @@ Page({
         budget: '',
         stayMinutes: '80',
         bestPeriod: '灵活',
-        note: ''
-      }
+        note: '',
+        address: '',
+        lat: '',
+        lng: ''
+      },
+      poiResults: []
     });
     this.loadPlaces();
     wx.showToast({

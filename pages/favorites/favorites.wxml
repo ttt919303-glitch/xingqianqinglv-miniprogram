@@ -57,6 +57,19 @@
       <view class="label">备注</view>
       <input value="{{form.note}}" data-field="note" placeholder="例如需要预约、适合拍照" bindinput="onInput" />
     </view>
+    <view class="poi-row">
+      <view>
+        <view class="label">地图地点</view>
+        <view class="poi-address">{{form.address || '未选择真实坐标'}}</view>
+      </view>
+      <button class="poi-btn" bindtap="searchPlacePois">搜索地点</button>
+    </view>
+    <view wx:if="{{poiResults.length}}" class="poi-results">
+      <view wx:for="{{poiResults}}" wx:key="name" class="poi-item" bindtap="selectPlacePoi" data-name="{{item.name}}" data-city="{{item.city}}" data-address="{{item.address}}" data-lat="{{item.lat}}" data-lng="{{item.lng}}">
+        <view class="poi-name">{{item.name}}</view>
+        <view class="poi-meta">{{item.city}} · {{item.address}}</view>
+      </view>
+    </view>
     <button class="primary-btn" bindtap="savePlace">{{editingPlaceId ? '保存修改' : '加入收藏夹'}}</button>
   </view>
 
@@ -70,6 +83,7 @@
       <view class="budget">¥{{item.budget}}</view>
     </view>
     <view class="place-note">{{item.note}}</view>
+    <view wx:if="{{item.address}}" class="place-meta">{{item.address}}</view>
     <view class="place-meta">建议停留 {{item.stayMinutes}} 分钟</view>
     <view class="place-actions">
       <button class="primary-btn" bindtap="addToTrip" data-id="{{item.id}}">加入{{selectedDayTitle}}</button>

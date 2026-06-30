@@ -70,6 +70,19 @@
         <input value="{{spotForm.note}}" data-field="note" placeholder="游玩重点或预约信息" bindinput="onSpotInput" />
       </view>
     </view>
+    <view class="poi-row">
+      <view>
+        <view class="label">真实地点</view>
+        <view class="poi-address">{{spotForm.address || '未选择地图地点'}}</view>
+      </view>
+      <button class="poi-btn" bindtap="searchSpotPois">搜索地点</button>
+    </view>
+    <view wx:if="{{spotPoiResults.length}}" class="poi-results">
+      <view wx:for="{{spotPoiResults}}" wx:key="name" class="poi-item" bindtap="selectSpotPoi" data-name="{{item.name}}" data-address="{{item.address}}" data-lat="{{item.lat}}" data-lng="{{item.lng}}">
+        <view class="poi-name">{{item.name}}</view>
+        <view class="poi-meta">{{item.address}}</view>
+      </view>
+    </view>
     <view class="spot-form-actions">
       <button class="primary-btn compact-btn" bindtap="saveSpot">{{editingSpotIndex >= 0 ? '保存景点' : '加入行程'}}</button>
       <button wx:if="{{editingSpotIndex >= 0}}" class="ghost-btn compact-btn" bindtap="resetSpotForm">取消编辑</button>
@@ -116,6 +129,14 @@
       </button>
     </view>
     <view wx:if="{{routeError}}" class="route-error">{{routeError}}</view>
+    <view class="assistant-panel">
+      <view>
+        <view class="assistant-title">当天行程助手</view>
+        <view class="assistant-desc">根据当前路线生成待办提醒和市内交通预算</view>
+      </view>
+      <button class="assistant-btn" bindtap="applyDayAssistant">生成</button>
+    </view>
+    <view wx:if="{{assistantResultText}}" class="assistant-result">{{assistantResultText}}</view>
     <view class="map-preview">
       <map
         id="routeMap"

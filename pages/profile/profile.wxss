@@ -93,6 +93,41 @@
   gap: 20rpx;
 }
 
+.backup-box {
+  display: grid;
+  gap: 16rpx;
+}
+
+.backup-title {
+  color: #20242a;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.backup-box textarea {
+  min-height: 180rpx;
+  padding: 22rpx;
+  border-radius: 22rpx;
+  background: #f6f8fb;
+  color: #20242a;
+  font-size: 24rpx;
+  line-height: 1.45;
+}
+
+.backup-status {
+  padding: 14rpx 18rpx;
+  border-radius: 18rpx;
+  background: #eafaf7;
+  color: #1f7f77;
+  font-size: 24rpx;
+}
+
+.backup-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
 .danger-btn {
   background: #f4978e;
   box-shadow: 0 16rpx 30rpx rgba(244, 151, 142, 0.24);

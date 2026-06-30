@@ -5,6 +5,8 @@ Page({
     type: 'trip',
     name: '',
     date: '',
+    startDate: '',
+    endDate: '',
     note: '',
     traffic: '',
     trafficTime: '',
@@ -49,6 +51,14 @@ Page({
 
   onDateInput(event) {
     this.setData({ date: event.detail.value });
+  },
+
+  onStartDateInput(event) {
+    this.setData({ startDate: event.detail.value });
+  },
+
+  onEndDateInput(event) {
+    this.setData({ endDate: event.detail.value });
   },
 
   onNoteInput(event) {
@@ -117,6 +127,8 @@ Page({
       app.addTrip({
         city: this.data.name,
         dateRange: this.data.date,
+        startDate: this.data.startDate,
+        endDate: this.data.endDate,
         note: this.data.note,
         traffic: this.data.traffic,
         trafficTime: this.data.trafficTime,
@@ -141,6 +153,8 @@ Page({
     this.setData({
       name: '',
       date: '',
+      startDate: '',
+      endDate: '',
       note: '',
       traffic: '',
       trafficTime: '',

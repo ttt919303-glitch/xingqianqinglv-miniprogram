@@ -39,11 +39,16 @@ Page({
       note: '',
       area: '',
       stayMinutes: '80',
-      bestPeriod: '灵活'
+      bestPeriod: '灵活',
+      address: '',
+      lat: '',
+      lng: ''
     },
+    spotPoiResults: [],
     routeSource: 'local',
     routeLoading: false,
-    routeError: ''
+    routeError: '',
+    assistantResultText: ''
   },
 
   onLoad(options) {
@@ -127,8 +132,12 @@ Page({
         note: '',
         area: '',
         stayMinutes: '80',
-        bestPeriod: '灵活'
-      }
+        bestPeriod: '灵活',
+        address: '',
+        lat: '',
+        lng: ''
+      },
+      spotPoiResults: []
     });
   },
 
@@ -156,8 +165,46 @@ Page({
         note: spot.note || '',
         area: spot.area || '',
         stayMinutes: String(spot.stayMinutes || 80),
-        bestPeriod: spot.bestPeriod || '灵活'
+        bestPeriod: spot.bestPeriod || '灵活',
+        address: spot.address || '',
+        lat: spot.lat !== undefined ? String(spot.lat) : '',
+        lng: spot.lng !== undefined ? String(spot.lng) : ''
       }
+    });
+  },
+
+  searchSpotPois() {
+    const keyword = this.data.spotForm.name.trim();
+    if (!keyword) {
+      wx.showToast({
+        title: '请先填写景点名称',
+        icon: 'none'
+      });
+      return;
+    }
+    app.searchTencentPois(keyword, this.data.trip.city)
+      .then(results => {
+        this.setData({ spotPoiResults: results });
+      })
+      .catch(() => {
+        wx.showToast({
+          title: '地点搜索暂不可用',
+          icon: 'none'
+        });
+      });
+  },
+
+  selectSpotPoi(event) {
+    const dataset = event.currentTarget.dataset;
+    this.setData({
+      spotForm: {
+        ...this.data.spotForm,
+        name: dataset.name,
+        address: dataset.address || '',
+        lat: String(dataset.lat),
+        lng: String(dataset.lng)
+      },
+      spotPoiResults: []
     });
   },
 
@@ -266,7 +313,8 @@ Page({
       timeline: app.buildEditableTimeline({ ...trip, attractions: routePlan.orderedAttractions }),
       mapPreview: app.buildRouteMapPreview(trip, routePlan),
       routeSource: routePlan.source || 'local',
-      routeError: routePlan.errorMessage || ''
+      routeError: routePlan.errorMessage || '',
+      assistantResultText: ''
     });
   },
 
@@ -303,7 +351,8 @@ Page({
       timeline: app.buildEditableTimeline({ ...this.data.trip, attractions: routePlan.orderedAttractions }),
       mapPreview: app.buildRouteMapPreview(this.data.trip, routePlan),
       routeSource: routePlan.source || 'local',
-      routeError: routePlan.errorMessage || ''
+      routeError: routePlan.errorMessage || '',
+      assistantResultText: ''
     });
   },
 
@@ -386,6 +435,27 @@ Page({
           routeLoading: false
         });
       });
+  },
+
+  applyDayAssistant() {
+    if (!this.data.trip) {
+      return;
+    }
+    const result = app.applyDayAssistant(
+      this.data.trip.id,
+      this.data.selectedDayIndex,
+      this.data.routePlan
+    );
+    const text = result.totalAdded
+      ? `已生成${result.dayTitle}：待办 ${result.memos.added} 条 · 预算 ${result.bills.added} 条`
+      : `${result.dayTitle}提醒和预算已存在`;
+    this.setData({
+      assistantResultText: text
+    });
+    wx.showToast({
+      title: result.totalAdded ? '已生成助手内容' : '内容已存在',
+      icon: result.totalAdded ? 'success' : 'none'
+    });
   },
 
   openChecklist() {

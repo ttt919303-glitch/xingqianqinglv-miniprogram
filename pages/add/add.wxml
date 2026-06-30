@@ -14,7 +14,10 @@
     </view>
     <view class="field">
       <view class="label">{{type === 'trip' ? '出行时间' : '所属分类'}}</view>
-      <input wx:if="{{type === 'trip'}}" class="qa-date-input" value="{{date}}" placeholder="例如：8月5日 - 8月6日" bindinput="onDateInput" />
+      <view wx:if="{{type === 'trip'}}" class="date-grid">
+        <input class="qa-start-date-input" value="{{startDate}}" placeholder="出发日期 2026-07-08" bindinput="onStartDateInput" />
+        <input class="qa-end-date-input" value="{{endDate}}" placeholder="结束日期 2026-07-10" bindinput="onEndDateInput" />
+      </view>
       <picker wx:else range="{{categories}}" range-key="name" value="{{categoryIndex}}" bindchange="onCategoryChange">
         <view class="picker-value">{{selectedCategoryName}}</view>
       </picker>
@@ -24,6 +27,10 @@
       <input class="qa-count-input" type="number" value="{{count}}" placeholder="例如：1" bindinput="onCountInput" />
     </view>
     <block wx:if="{{type === 'trip'}}">
+      <view class="field">
+        <view class="label">日期备注</view>
+        <input class="qa-date-input" value="{{date}}" placeholder="可选，例如：暑假短途" bindinput="onDateInput" />
+      </view>
       <view class="field">
         <view class="label">交通方式</view>
         <input class="qa-traffic-input" value="{{traffic}}" placeholder="例如：高铁 G12 / 飞机 MU588" bindinput="onTrafficInput" />

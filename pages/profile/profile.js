@@ -3,6 +3,8 @@ const app = getApp();
 Page({
   data: {
     progress: {},
+    backupText: '',
+    backupStatus: '',
     stats: [],
     guide: [
       '首页查看行程倒计时和准备进度',
@@ -31,6 +33,48 @@ Page({
       icon: 'success'
     });
     this.onShow();
+  },
+
+  exportBackup() {
+    const backupText = app.exportBackup();
+    this.setData({
+      backupText,
+      backupStatus: '备份已生成并复制，可保存到云盘或聊天文件。'
+    });
+    wx.setClipboardData({
+      data: backupText,
+      success() {
+        wx.showToast({
+          title: '已复制备份',
+          icon: 'success'
+        });
+      }
+    });
+  },
+
+  onBackupInput(event) {
+    this.setData({
+      backupText: event.detail.value
+    });
+  },
+
+  importBackup() {
+    try {
+      app.importBackup(this.data.backupText);
+      this.setData({
+        backupStatus: '备份已导入。'
+      });
+      wx.showToast({
+        title: '导入成功',
+        icon: 'success'
+      });
+      this.onShow();
+    } catch (error) {
+      wx.showToast({
+        title: '备份格式不正确',
+        icon: 'none'
+      });
+    }
   },
 
   resetData() {

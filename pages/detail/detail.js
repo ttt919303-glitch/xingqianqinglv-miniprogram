@@ -269,5 +269,31 @@ Page({
   deleteMemo(event) {
     app.removeMemo(event.currentTarget.dataset.id);
     this.loadDetail();
+  },
+
+  addMemoToCalendar(event) {
+    const reminder = app.buildMemoCalendarReminder(this.data.detail.trip.id, event.currentTarget.dataset.id);
+    if (!reminder || typeof wx.addPhoneCalendar !== 'function') {
+      wx.showToast({
+        title: '当前环境不支持日历提醒',
+        icon: 'none'
+      });
+      return;
+    }
+    wx.addPhoneCalendar({
+      ...reminder,
+      success() {
+        wx.showToast({
+          title: '已加入日历',
+          icon: 'success'
+        });
+      },
+      fail() {
+        wx.showToast({
+          title: '日历提醒未添加',
+          icon: 'none'
+        });
+      }
+    });
   }
 });

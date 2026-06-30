@@ -9,6 +9,8 @@ function loadMiniProgram() {
   const storage = {};
   const pages = {};
   const navCalls = [];
+  const calendarCalls = [];
+  let clipboardText = '';
   let appInstance;
 
   const wx = {
@@ -20,6 +22,37 @@ function loadMiniProgram() {
     },
     setNavigationBarTitle() {},
     showToast() {},
+    showModal(options) {
+      if (options.success) {
+        options.success({ confirm: true });
+      }
+    },
+    setClipboardData(options) {
+      clipboardText = options.data;
+      if (options.success) {
+        options.success();
+      }
+    },
+    getClipboardData(options) {
+      if (options.success) {
+        options.success({ data: clipboardText });
+      }
+    },
+    addPhoneCalendar(options) {
+      calendarCalls.push(options);
+      if (options.success) {
+        options.success({ errMsg: 'addPhoneCalendar:ok' });
+      }
+    },
+    requestSubscribeMessage(options) {
+      if (options.success) {
+        const result = {};
+        (options.tmplIds || []).forEach(id => {
+          result[id] = 'accept';
+        });
+        options.success(result);
+      }
+    },
     switchTab(options) {
       navCalls.push({ type: 'switchTab', url: options.url });
       if (options.success) {
@@ -60,7 +93,7 @@ function loadMiniProgram() {
   }
 
   run('app.js');
-  return { app: appInstance, wx, storage, navCalls, run };
+  return { app: appInstance, wx, storage, navCalls, calendarCalls, run };
 }
 
 function createPage(pageConfig, options = {}) {
@@ -149,6 +182,63 @@ test('新增行程保存交通和景点安排', () => {
     { time: '09:30', name: '夫子庙', note: '上午先逛秦淮河' },
     { time: '14:00', name: '中山陵', note: '下午避开人流' }
   ]));
+});
+
+test('品牌名称统一为春日出游并保留副标题', () => {
+  const env = loadMiniProgram();
+  const appJson = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8'));
+  const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+
+  assert.strictEqual(env.app.globalData.appName, '春日出游');
+  assert.strictEqual(env.app.globalData.slogan, '轻松规划每一次出发');
+  assert.strictEqual(appJson.window.navigationBarTitleText, '春日出游');
+  assert.ok(readme.includes('# 春日出游微信小程序'));
+  assert.strictEqual(readme.includes('行前晴旅'), false);
+});
+
+test('自定义行程会保存出发结束日期并自动计算状态和倒计时', () => {
+  const env = loadMiniProgram();
+
+  const trip = env.app.addTrip({
+    city: '南京',
+    startDate: '2026-07-08',
+    endDate: '2026-07-10',
+    traffic: '高铁 G12',
+    attractionsText: '09:30 夫子庙'
+  });
+  const upcoming = env.app.withComputedTrip(trip, new Date(2026, 5, 30));
+  const traveling = env.app.withComputedTrip(trip, new Date(2026, 6, 9));
+  const ended = env.app.withComputedTrip(trip, new Date(2026, 6, 12));
+
+  assert.strictEqual(trip.dateRange, '7月8日 - 7月10日');
+  assert.strictEqual(trip.startDate, '2026-07-08');
+  assert.strictEqual(trip.endDate, '2026-07-10');
+  assert.strictEqual(upcoming.daysLeft, 8);
+  assert.strictEqual(upcoming.status, '未出发');
+  assert.strictEqual(traveling.status, '旅行中');
+  assert.strictEqual(ended.status, '已结束');
+});
+
+test('新增页会把出发日期和结束日期保存到自定义行程', () => {
+  const env = loadMiniProgram();
+  const addConfig = env.run('pages/add/add.js');
+  const page = createPage(addConfig);
+  page.onLoad();
+  page.setData({
+    type: 'trip',
+    name: '南京',
+    startDate: '2026-07-08',
+    endDate: '2026-07-10',
+    traffic: '高铁 G12',
+    attractionsText: '09:30 夫子庙'
+  });
+
+  page.saveDraft();
+
+  const trip = env.app.getTrips().find(item => item.city === '南京');
+  assert.strictEqual(trip.startDate, '2026-07-08');
+  assert.strictEqual(trip.endDate, '2026-07-10');
+  assert.strictEqual(trip.dateRange, '7月8日 - 7月10日');
 });
 
 test('路线推荐会根据策略生成不同顺序和交通摘要', () => {
@@ -712,6 +802,50 @@ test('路线页切换分段交通方式会刷新路线步骤', () => {
   assert.ok(page.data.routeSteps[0].desc.includes('打车'));
 });
 
+test('当天行程助手会根据路线生成待办和交通预算且避免重复', () => {
+  const env = loadMiniProgram();
+  const beforePlan = env.app.buildRoutePlan(env.app.getTripById('shanghai'), 'time');
+  const firstSegment = beforePlan.segments[0];
+  env.app.updateRouteSegmentMode('shanghai', firstSegment.from, firstSegment.to, '打车');
+
+  const routePlan = env.app.buildRoutePlan(env.app.getTripForDay('shanghai', 0), 'time');
+  const result = env.app.applyDayAssistant('shanghai', 0, routePlan);
+  const secondResult = env.app.applyDayAssistant('shanghai', 0, routePlan);
+  const memos = env.app.getMemos('shanghai');
+  const bill = env.app.getBillSummary('shanghai').bills.find(item => item.title === '第1天市内交通预算');
+
+  assert.ok(result.memos.added >= 2);
+  assert.strictEqual(result.bills.added, 1);
+  assert.strictEqual(secondResult.memos.added, 0);
+  assert.strictEqual(secondResult.bills.added, 0);
+  assert.ok(memos.some(item => item.content === '确认第1天交通和集合时间'));
+  assert.ok(memos.some(item => item.placeName === '外滩'));
+  assert.strictEqual(bill.amount, routePlan.transportBudget);
+});
+
+test('路线页可以一键生成当天行程助手内容', () => {
+  const env = loadMiniProgram();
+  const planConfig = env.run('pages/plan/plan.js');
+  const page = createPage(planConfig, { id: 'shanghai' });
+  page.triggerLoad();
+  const first = page.data.routePlan.segments[0];
+  page.chooseSegmentMode({
+    currentTarget: {
+      dataset: {
+        from: first.from,
+        to: first.to,
+        mode: '打车'
+      }
+    }
+  });
+
+  page.applyDayAssistant();
+
+  assert.ok(page.data.assistantResultText.includes('已生成'));
+  assert.ok(env.app.getMemos('shanghai').some(item => item.content === '确认第1天交通和集合时间'));
+  assert.ok(env.app.getBillSummary('shanghai').bills.some(item => item.title === '第1天市内交通预算'));
+});
+
 test('推荐物品库可以一键加入清单且避免重复', () => {
   const env = loadMiniProgram();
   const beforeCount = env.app.getAllItems().length;
@@ -812,6 +946,29 @@ test('详情页切换日期后打开路线会记住当前日期', () => {
   ]);
 });
 
+test('备忘可以生成手机日历提醒', () => {
+  const env = loadMiniProgram();
+  const memo = env.app.addMemo('shanghai', {
+    content: '提前值机',
+    category: '路上',
+    date: '2026-07-03',
+    remindTime: '08:30',
+    placeName: '虹桥站'
+  });
+  const reminder = env.app.buildMemoCalendarReminder('shanghai', memo.id);
+  const detailConfig = env.run('pages/detail/detail.js');
+  const page = createPage(detailConfig, { id: 'shanghai' });
+  page.triggerLoad();
+  page.triggerShow();
+
+  page.addMemoToCalendar({ currentTarget: { dataset: { id: memo.id } } });
+
+  assert.ok(reminder.title.includes('提前值机'));
+  assert.strictEqual(reminder.location, '虹桥站');
+  assert.ok(reminder.startTime > 0);
+  assert.strictEqual(env.calendarCalls[0].title, reminder.title);
+});
+
 test('腾讯地图请求会带 key 并按路线段选择接口', () => {
   const env = loadMiniProgram();
   const trip = {
@@ -830,10 +987,20 @@ test('腾讯地图请求会带 key 并按路线段选择接口', () => {
     { lat: 31.235, lng: 121.475 },
     '步行'
   );
+  const transitRequest = env.app.buildTencentDirectionRequest(
+    { lat: 31.239, lng: 121.499 },
+    { lat: 31.236, lng: 121.502 },
+    '地铁/公交'
+  );
+  const bicyclingRequest = env.app.buildTencentDirectionRequest(
+    { lat: 31.239, lng: 121.499 },
+    { lat: 31.236, lng: 121.502 },
+    '骑行'
+  );
   const drivingRequest = env.app.buildTencentDirectionRequest(
     { lat: 31.239, lng: 121.499 },
     { lat: 31.236, lng: 121.502 },
-    '地铁/打车'
+    '打车'
   );
 
   assert.strictEqual(targets[0].address, '上海外滩');
@@ -841,12 +1008,73 @@ test('腾讯地图请求会带 key 并按路线段选择接口', () => {
   assert.strictEqual(Object.prototype.hasOwnProperty.call(geocoderRequest.data, 'key'), true);
   assert.strictEqual(geocoderRequest.data.address, '上海外滩');
   assert.strictEqual(walkingRequest.url, 'https://apis.map.qq.com/ws/direction/v1/walking/');
+  assert.strictEqual(transitRequest.url, 'https://apis.map.qq.com/ws/direction/v1/transit/');
+  assert.strictEqual(transitRequest.data.policy, 'LEAST_TIME');
+  assert.strictEqual(bicyclingRequest.url, 'https://apis.map.qq.com/ws/direction/v1/bicycling/');
   assert.strictEqual(drivingRequest.url, 'https://apis.map.qq.com/ws/direction/v1/driving/');
   assert.strictEqual(walkingRequest.data.from, '31.239,121.499');
   assert.strictEqual(
     env.app.formatTencentRouteError(new Error('此key每日调用量已达到上限')),
     '腾讯路线今日配额已用完，已切换本地推荐路线。'
   );
+});
+
+test('腾讯 POI 搜索结果可以保存为真实坐标并优先用于地图', () => {
+  const env = loadMiniProgram();
+  const request = env.app.buildTencentPoiSearchRequest('外滩', '上海');
+  const poi = env.app.normalizeTencentPoi({
+    title: '外滩',
+    address: '中山东一路',
+    location: { lat: 31.239, lng: 121.499 },
+    ad_info: { city: '上海市' }
+  });
+  const place = env.app.addFavoritePlace({
+    name: poi.name,
+    city: poi.city,
+    address: poi.address,
+    lat: poi.lat,
+    lng: poi.lng,
+    tag: '拍照点'
+  });
+
+  env.app.addFavoritePlaceToTrip(place.id, 'shanghai', 1);
+  const trip = env.app.getTripForDay('shanghai', 1);
+  const routePlan = env.app.buildRoutePlan(trip, 'manual');
+  const mapPreview = env.app.buildRouteMapPreview(trip, routePlan);
+
+  assert.strictEqual(request.url, 'https://apis.map.qq.com/ws/place/v1/search');
+  assert.strictEqual(request.data.boundary, 'region(上海,0)');
+  assert.strictEqual(poi.name, '外滩');
+  assert.strictEqual(poi.city, '上海市');
+  assert.strictEqual(trip.attractions[0].lat, 31.239);
+  assert.strictEqual(trip.attractions[0].lng, 121.499);
+  assert.strictEqual(mapPreview.markers[0].latitude, 31.239);
+  assert.strictEqual(mapPreview.markers[0].longitude, 121.499);
+});
+
+test('路线页可以搜索 POI 并把真实坐标保存到景点', () => {
+  const env = loadMiniProgram();
+  const planConfig = env.run('pages/plan/plan.js');
+  const page = createPage(planConfig, { id: 'shanghai' });
+  page.triggerLoad();
+
+  page.selectSpotPoi({
+    currentTarget: {
+      dataset: {
+        name: '上海博物馆',
+        address: '人民大道201号',
+        lat: 31.2303,
+        lng: 121.4708
+      }
+    }
+  });
+  page.saveSpot();
+
+  const trip = env.app.getTripForDay('shanghai', 0);
+  const spot = trip.attractions.find(item => item.name === '上海博物馆');
+  assert.strictEqual(spot.lat, 31.2303);
+  assert.strictEqual(spot.lng, 121.4708);
+  assert.strictEqual(spot.address, '人民大道201号');
 });
 
 test('分类详情加号会记住当前新增分类', () => {
@@ -960,6 +1188,42 @@ test('重置用户数据会清空自定义内容并恢复默认打包状态', ()
   assert.strictEqual(JSON.stringify(env.wx.getStorageSync('customTrips')), '[]');
   assert.strictEqual(env.wx.getStorageSync('preferredCategoryId'), '');
   assert.strictEqual(JSON.stringify(env.app.getPackedIds()), JSON.stringify(env.app.getDefaultPackedIds()));
+});
+
+test('用户数据可以导出为备份 JSON 并重新导入恢复', () => {
+  const env = loadMiniProgram();
+  env.app.addItem({ categoryId: 'travel', name: '墨镜', count: 1 });
+  env.app.addTrip({ city: '南京', startDate: '2026-07-08', endDate: '2026-07-10' });
+
+  const backupText = env.app.exportBackup();
+  env.app.resetUserData();
+  assert.strictEqual(env.app.getAllItems().some(item => item.name === '墨镜'), false);
+
+  const result = env.app.importBackup(backupText);
+  assert.strictEqual(result.imported, true);
+  assert.strictEqual(env.app.getAllItems().some(item => item.name === '墨镜'), true);
+  assert.strictEqual(env.app.getTrips().some(item => item.city === '南京'), true);
+});
+
+test('我的页面支持复制备份和从文本导入备份', () => {
+  const env = loadMiniProgram();
+  const profileConfig = env.run('pages/profile/profile.js');
+  const page = createPage(profileConfig);
+  env.app.addItem({ categoryId: 'travel', name: '墨镜', count: 1 });
+  page.triggerShow();
+
+  page.exportBackup();
+  env.app.resetUserData();
+  assert.strictEqual(env.app.getAllItems().some(item => item.name === '墨镜'), false);
+
+  env.wx.getClipboardData({
+    success: res => {
+      page.onBackupInput({ detail: { value: res.data } });
+    }
+  });
+  page.importBackup();
+
+  assert.strictEqual(env.app.getAllItems().some(item => item.name === '墨镜'), true);
 });
 
 test('页面总数不超过十页且路线账单使用不同导航图标', () => {

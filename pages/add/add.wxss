@@ -55,6 +55,12 @@ textarea {
   padding: 24rpx;
 }
 
+.date-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
 .spot-preview {
   display: grid;
   gap: 14rpx;

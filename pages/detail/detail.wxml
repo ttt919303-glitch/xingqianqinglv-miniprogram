@@ -171,6 +171,7 @@
       </view>
     </view>
     <view class="memo-actions">
+      <button class="mini-btn" bindtap="addMemoToCalendar" data-id="{{item.id}}">提醒</button>
       <button class="mini-btn" bindtap="editMemo" data-id="{{item.id}}">编辑</button>
       <button class="mini-btn danger" bindtap="deleteMemo" data-id="{{item.id}}">删除</button>
     </view>

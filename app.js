@@ -191,6 +191,40 @@ App({
     return new Date(date.getFullYear(), date.getMonth(), date.getDate());
   },
 
+  parseDateInput(value, todayInput) {
+    const text = String(value || '').trim();
+    const fullDate = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (fullDate) {
+      return new Date(Number(fullDate[1]), Number(fullDate[2]) - 1, Number(fullDate[3]));
+    }
+    const shortDate = text.match(/(\d{1,2})月(\d{1,2})日/);
+    if (!shortDate) {
+      return null;
+    }
+    const base = todayInput ? new Date(todayInput) : new Date();
+    return new Date(base.getFullYear(), Number(shortDate[1]) - 1, Number(shortDate[2]));
+  },
+
+  formatDateLabel(value) {
+    const date = this.parseDateInput(value);
+    if (!date) {
+      return '';
+    }
+    return `${date.getMonth() + 1}月${date.getDate()}日`;
+  },
+
+  formatTripDateRange(startDate, endDate, fallback = '') {
+    if (fallback && startDate && !endDate) {
+      return fallback;
+    }
+    const start = this.formatDateLabel(startDate);
+    const end = this.formatDateLabel(endDate);
+    if (start && end && start !== end) {
+      return `${start} - ${end}`;
+    }
+    return start || end || fallback || '待定日期';
+  },
+
   calculateDaysLeft(startDate, todayInput) {
     const parts = String(startDate || '').split('-').map(Number);
     if (parts.length !== 3 || parts.some(Number.isNaN)) {
@@ -201,10 +235,28 @@ App({
     return Math.max(0, Math.ceil((target - today) / 86400000));
   },
 
+  calculateTripStatus(startDate, endDate, todayInput) {
+    const start = this.parseDateInput(startDate, todayInput);
+    const end = this.parseDateInput(endDate || startDate, todayInput);
+    const today = this.getTodayDate(todayInput);
+    if (!start) {
+      return '未出发';
+    }
+    if (today < start) {
+      return '未出发';
+    }
+    if (end && today > end) {
+      return '已结束';
+    }
+    return '旅行中';
+  },
+
   withComputedTrip(trip, todayInput) {
     return {
       ...trip,
-      daysLeft: trip.startDate ? this.calculateDaysLeft(trip.startDate, todayInput) : trip.daysLeft
+      dateRange: this.formatTripDateRange(trip.startDate, trip.endDate, trip.dateRange),
+      daysLeft: trip.startDate ? this.calculateDaysLeft(trip.startDate, todayInput) : trip.daysLeft,
+      status: this.calculateTripStatus(trip.startDate, trip.endDate, todayInput)
     };
   },
 
@@ -268,7 +320,8 @@ App({
     return {
       key: tencentMapLocalConfig.key || '',
       geocoderUrl: 'https://apis.map.qq.com/ws/geocoder/v1/',
-      directionBaseUrl: 'https://apis.map.qq.com/ws/direction/v1/'
+      directionBaseUrl: 'https://apis.map.qq.com/ws/direction/v1/',
+      placeSearchUrl: 'https://apis.map.qq.com/ws/place/v1/search'
     };
   },
 
@@ -291,18 +344,67 @@ App({
     };
   },
 
+  getTencentDirectionMode(mode) {
+    const text = String(mode || '');
+    if (text.includes('步行')) {
+      return { routeType: 'walking' };
+    }
+    if (text.includes('骑行')) {
+      return { routeType: 'bicycling' };
+    }
+    if (text.includes('地铁') || text.includes('公交')) {
+      return { routeType: 'transit', policy: 'LEAST_TIME' };
+    }
+    return { routeType: 'driving' };
+  },
+
   buildTencentDirectionRequest(from, to, mode) {
     const config = this.getTencentMapConfig();
-    const routeType = mode === '步行' ? 'walking' : 'driving';
+    const directionMode = this.getTencentDirectionMode(mode);
+    const data = {
+      key: config.key,
+      from: `${from.lat},${from.lng}`,
+      to: `${to.lat},${to.lng}`,
+      output: 'json'
+    };
+    if (directionMode.policy) {
+      data.policy = directionMode.policy;
+    }
     return {
-      url: `${config.directionBaseUrl}${routeType}/`,
+      url: `${config.directionBaseUrl}${directionMode.routeType}/`,
+      data
+    };
+  },
+
+  buildTencentPoiSearchRequest(keyword, city) {
+    const config = this.getTencentMapConfig();
+    return {
+      url: config.placeSearchUrl,
       data: {
         key: config.key,
-        from: `${from.lat},${from.lng}`,
-        to: `${to.lat},${to.lng}`,
-        output: 'json'
+        keyword: String(keyword || '').trim(),
+        boundary: `region(${city || '全国'},0)`,
+        page_size: 10,
+        page_index: 1
       }
     };
+  },
+
+  normalizeTencentPoi(poi) {
+    const location = poi.location || {};
+    return {
+      name: poi.title || poi.name || '',
+      address: poi.address || '',
+      city: (poi.ad_info && poi.ad_info.city) || poi.city || '',
+      lat: Number(location.lat || poi.lat) || 0,
+      lng: Number(location.lng || poi.lng) || 0
+    };
+  },
+
+  async searchTencentPois(keyword, city) {
+    const request = this.buildTencentPoiSearchRequest(keyword, city);
+    const data = await this.requestTencentMap(request);
+    return (data.data || []).map(item => this.normalizeTencentPoi(item));
   },
 
   normalizeTencentCoordinate(value) {
@@ -688,7 +790,9 @@ App({
   addTrip(data) {
     const customTrips = wx.getStorageSync('customTrips') || [];
     const city = (data.city || '').trim();
-    const dateRange = (data.dateRange || '').trim() || '待定日期';
+    const startDate = (data.startDate || '').trim();
+    const endDate = (data.endDate || startDate).trim();
+    const dateRange = this.formatTripDateRange(startDate, endDate, (data.dateRange || '').trim());
     const note = (data.note || '').trim();
     const attractions = this.parseAttractions(data.attractionsText);
     const routePlan = this.buildRoutePlan({ city, attractions }, 'time');
@@ -696,7 +800,10 @@ App({
       id: `custom-${Date.now()}`,
       city,
       dateRange,
-      daysLeft: 15,
+      startDate,
+      endDate,
+      daysLeft: startDate ? this.calculateDaysLeft(startDate) : 15,
+      status: this.calculateTripStatus(startDate, endDate),
       coverTheme: 'lake',
       traffic: data.traffic && data.traffic.trim() ? data.traffic.trim() : '自定义交通',
       trafficTime: data.trafficTime && data.trafficTime.trim() ? data.trafficTime.trim() : '待填写',
@@ -817,8 +924,9 @@ App({
       bestPeriod: data.bestPeriod || meta.bestPeriod || '灵活',
       x: data.x ?? meta.x,
       y: data.y ?? meta.y,
-      lat: data.lat,
-      lng: data.lng
+      lat: data.lat !== undefined ? Number(data.lat) : undefined,
+      lng: data.lng !== undefined ? Number(data.lng) : undefined,
+      address: data.address || ''
     };
   },
 
@@ -1056,7 +1164,10 @@ App({
       stayMinutes: Number(data.stayMinutes) || 80,
       bestPeriod: data.bestPeriod || '灵活',
       status: data.status || '想去',
-      note: data.note || ''
+      note: data.note || '',
+      address: data.address || '',
+      lat: data.lat !== undefined && data.lat !== '' ? Number(data.lat) : undefined,
+      lng: data.lng !== undefined && data.lng !== '' ? Number(data.lng) : undefined
     };
     wx.setStorageSync('favoritePlaces', places.concat(place));
     return place;
@@ -1073,7 +1184,9 @@ App({
         ...item,
         ...patch,
         budget: patch.budget !== undefined ? Number(patch.budget) || 0 : item.budget,
-        stayMinutes: patch.stayMinutes !== undefined ? Number(patch.stayMinutes) || 80 : item.stayMinutes
+        stayMinutes: patch.stayMinutes !== undefined ? Number(patch.stayMinutes) || 80 : item.stayMinutes,
+        lat: patch.lat !== undefined && patch.lat !== '' ? Number(patch.lat) : item.lat,
+        lng: patch.lng !== undefined && patch.lng !== '' ? Number(patch.lng) : item.lng
       };
       return updated;
     });
@@ -1098,7 +1211,10 @@ App({
       name: place.name,
       note: place.note || `${place.tag} · 建议停留 ${place.stayMinutes} 分钟`,
       stayMinutes: place.stayMinutes,
-      bestPeriod: place.bestPeriod
+      bestPeriod: place.bestPeriod,
+      address: place.address || '',
+      lat: place.lat,
+      lng: place.lng
     });
     const nextPlaces = places.map(item => item.id === placeId ? { ...item, status: '已安排' } : item);
     wx.setStorageSync('favoritePlaces', nextPlaces);
@@ -1399,6 +1515,81 @@ App({
       transitMinutes: routePlan.transitMinutes,
       transportBudget: routePlan.transportBudget || 0,
       memoUndone: memoSummary.undone
+    };
+  },
+
+  buildDayAssistantMemos(dayTrip, routePlan) {
+    const spots = routePlan.orderedAttractions || [];
+    const dayTitle = dayTrip.activeDayTitle || '当天';
+    if (!spots.length) {
+      return [];
+    }
+    const firstSpot = spots[0];
+    const lastSpot = spots[spots.length - 1];
+    const memos = [
+      {
+        content: `确认${dayTitle}交通和集合时间`,
+        category: '路上',
+        date: dayTitle,
+        remindTime: firstSpot.time || '08:30',
+        placeName: firstSpot.name,
+        transportId: dayTrip.traffic || ''
+      },
+      {
+        content: `确认${firstSpot.name}预约和开放时间`,
+        category: '游玩',
+        date: dayTitle,
+        remindTime: '前一天20:00',
+        placeName: firstSpot.name
+      }
+    ];
+    if (spots.length > 1) {
+      memos.push({
+        content: `确认${lastSpot.name}后返程方式`,
+        category: '返程',
+        date: dayTitle,
+        remindTime: lastSpot.time || '',
+        placeName: lastSpot.name
+      });
+    }
+    return memos;
+  },
+
+  applyDayAssistant(tripId, dayIndex = 0, currentRoutePlan) {
+    const dayTrip = this.getTripForDay(tripId, dayIndex);
+    const routePlan = currentRoutePlan || this.buildRoutePlan(dayTrip, 'manual');
+    const dayTitle = dayTrip.activeDayTitle || `第${Number(dayIndex) + 1}天`;
+    const memos = this.buildDayAssistantMemos(dayTrip, routePlan);
+    const budget = Math.round(Number(routePlan.transportBudget) || 0);
+    const bills = budget > 0 ? [
+      {
+        title: `${dayTitle}市内交通预算`,
+        category: '交通',
+        amount: budget,
+        type: 'budget',
+        date: dayTitle,
+        note: routePlan.routeNames || ''
+      }
+    ] : [];
+    const countAdded = (list, add) => {
+      let added = 0;
+      let skipped = 0;
+      list.forEach(item => {
+        if (add(item)) {
+          added += 1;
+        } else {
+          skipped += 1;
+        }
+      });
+      return { added, skipped };
+    };
+    const memoResult = countAdded(memos, item => this.addMemoOnce(dayTrip.id, item));
+    const billResult = countAdded(bills, item => this.addBillOnce(dayTrip.id, item));
+    return {
+      dayTitle,
+      memos: memoResult,
+      bills: billResult,
+      totalAdded: memoResult.added + billResult.added
     };
   },
 
@@ -1727,6 +1918,68 @@ App({
   removeCustomTrip(id) {
     const customTrips = wx.getStorageSync('customTrips') || [];
     wx.setStorageSync('customTrips', customTrips.filter(item => item.id !== id));
+  },
+
+  getBackupKeys() {
+    return [
+      'customItems',
+      'customTrips',
+      'tripOverrides',
+      'tripBills',
+      'tripMemos',
+      'tripTransports',
+      'routeSegmentModes',
+      'favoritePlaces',
+      'packedIds',
+      'preferredCategoryId',
+      'selectedTripId',
+      'selectedTripDayIndex'
+    ];
+  },
+
+  exportBackup() {
+    const data = this.getBackupKeys().reduce((result, key) => ({
+      ...result,
+      [key]: wx.getStorageSync(key)
+    }), {});
+    return JSON.stringify({
+      appName: this.globalData.appName,
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      data
+    }, null, 2);
+  },
+
+  importBackup(text) {
+    const backup = JSON.parse(text);
+    const data = backup.data || {};
+    this.getBackupKeys().forEach(key => {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        wx.setStorageSync(key, data[key]);
+      }
+    });
+    return { imported: true };
+  },
+
+  buildMemoCalendarReminder(tripId, memoId) {
+    const trip = this.getTripById(tripId);
+    const memo = this.getMemos(tripId).find(item => item.id === memoId);
+    if (!memo) {
+      return null;
+    }
+    const date = this.parseDateInput(memo.date) || this.parseDateInput(trip.startDate) || this.getTodayDate();
+    const matched = String(memo.remindTime || '').match(/^(\d{1,2}):(\d{2})$/);
+    const hours = matched ? Number(matched[1]) : 9;
+    const minutes = matched ? Number(matched[2]) : 0;
+    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes);
+    return {
+      title: `${this.globalData.appName}：${memo.content}`,
+      location: memo.placeName || trip.city || '',
+      description: `${trip.city || ''} · ${memo.category || '旅行提醒'}`,
+      startTime: Math.floor(start.getTime() / 1000),
+      endTime: Math.floor((start.getTime() + 30 * 60000) / 1000),
+      alarmOffset: 15 * 60
+    };
   },
 
   resetUserData() {
