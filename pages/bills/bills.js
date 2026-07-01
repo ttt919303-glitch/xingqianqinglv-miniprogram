@@ -18,6 +18,7 @@ Page({
     payment: '',
     participants: '1',
     payer: '',
+    members: '',
     note: '',
     editingBillId: '',
     categoryIndex: 0,
@@ -83,6 +84,10 @@ Page({
     this.setData({ payer: event.detail.value });
   },
 
+  onMembersInput(event) {
+    this.setData({ members: event.detail.value });
+  },
+
   onNoteInput(event) {
     this.setData({ note: event.detail.value });
   },
@@ -113,6 +118,7 @@ Page({
       payment: this.data.payment,
       participants: this.data.participants,
       payer: this.data.payer,
+      members: this.data.members,
       note: this.data.note
     };
     if (this.data.editingBillId) {
@@ -128,6 +134,7 @@ Page({
       payment: '',
       participants: '1',
       payer: '',
+      members: '',
       note: '',
       editingBillId: ''
     });
@@ -156,6 +163,7 @@ Page({
       payment: bill.payment || '',
       participants: String(bill.participants || 1),
       payer: bill.payer || '',
+      members: (bill.members || []).join('、'),
       note: bill.note || '',
       categoryIndex: Math.max(0, this.data.categories.indexOf(bill.category)),
       typeIndex: bill.type === 'budget' ? 1 : 0

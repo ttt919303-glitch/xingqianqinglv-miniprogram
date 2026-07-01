@@ -478,6 +478,38 @@ App({
     return points;
   },
 
+  parseTencentDirectionData(data, localSegment) {
+    const route = data.result && data.result.routes && data.result.routes[0];
+    if (!route) {
+      throw new Error(`未找到路线：${localSegment.from} 到 ${localSegment.to}`);
+    }
+
+    const steps = route.steps || [];
+    const stepPoints = steps.reduce((points, step) => {
+      return points.concat(this.decodeTencentPolyline(step.polyline));
+    }, []);
+    const transitLines = steps.reduce((lines, step) => {
+      const stepLines = step.lines || [];
+      return lines.concat(stepLines.map(item => item.title || item.name).filter(Boolean));
+    }, []);
+    const polylinePoints = this.decodeTencentPolyline(route.polyline);
+    const minutes = Number(route.duration) || localSegment.minutes;
+    const distance = Number(route.distance) || 0;
+    const distanceText = distance ? `${(distance / 1000).toFixed(1)}公里` : '距离待估';
+    const lineText = transitLines.length ? `，${transitLines.join(' / ')}` : '';
+
+    return {
+      ...localSegment,
+      source: 'tencent',
+      distance,
+      distanceText,
+      minutes,
+      transitLines,
+      polylinePoints: polylinePoints.length ? polylinePoints : stepPoints,
+      desc: `${localSegment.mode}约${minutes}分钟，腾讯地图估算距离${distanceText}${lineText}。`
+    };
+  },
+
   requestTencentMap(options) {
     return new Promise((resolve, reject) => {
       wx.request({
@@ -515,19 +547,7 @@ App({
   async requestTencentDirection(from, to, localSegment) {
     const request = this.buildTencentDirectionRequest(from, to, localSegment.mode);
     const data = await this.requestTencentMap(request);
-    const route = data.result && data.result.routes && data.result.routes[0];
-    if (!route) {
-      throw new Error(`未找到路线：${from.name} 到 ${to.name}`);
-    }
-    return {
-      ...localSegment,
-      source: 'tencent',
-      distance: route.distance || 0,
-      distanceText: route.distance ? `${(route.distance / 1000).toFixed(1)}公里` : '距离待估',
-      minutes: Number(route.duration) || localSegment.minutes,
-      polylinePoints: this.decodeTencentPolyline(route.polyline),
-      desc: `${localSegment.mode}约${Number(route.duration) || localSegment.minutes}分钟，腾讯地图估算距离${route.distance ? `${(route.distance / 1000).toFixed(1)}公里` : '待估'}。`
-    };
+    return this.parseTencentDirectionData(data, localSegment);
   },
 
   formatTencentRouteError(error) {
@@ -841,9 +861,14 @@ App({
     const endDate = (data.endDate || startDate).trim();
     const dateRange = this.formatTripDateRange(startDate, endDate, (data.dateRange || '').trim());
     const note = (data.note || '').trim();
-    const attractions = Array.isArray(data.attractions) && data.attractions.length
-      ? data.attractions.map(item => ({ ...item }))
-      : this.parseAttractions(data.attractionsText);
+    const dayGroups = Array.isArray(data.attractions) && data.attractions.length
+      ? []
+      : this.parseAttractionDays(data.attractionsText);
+    const attractions = dayGroups.length
+      ? dayGroups[0].attractions
+      : Array.isArray(data.attractions) && data.attractions.length
+        ? data.attractions.map(item => ({ ...item }))
+        : this.parseAttractions(data.attractionsText);
     const routePlan = this.buildRoutePlan({ city, attractions }, 'time');
     const newTrip = {
       id: `custom-${Date.now()}`,
@@ -861,6 +886,7 @@ App({
       total: this.getAllItems().length,
       tip: note || '出发前检查证件、充电设备和天气变化。',
       attractions,
+      itineraryDays: dayGroups.length ? dayGroups : undefined,
       routePlan,
       routeHint: `${routePlan.summary} 后续可接入地图服务生成真实导航路线。`
     };
@@ -1153,13 +1179,91 @@ App({
       });
   },
 
+  parseDayNumber(value) {
+    const numeric = Number(value);
+    if (numeric) {
+      return numeric;
+    }
+    const map = {
+      一: 1,
+      二: 2,
+      三: 3,
+      四: 4,
+      五: 5,
+      六: 6,
+      七: 7,
+      八: 8,
+      九: 9,
+      十: 10
+    };
+    if (value === '十') {
+      return 10;
+    }
+    if (value.startsWith('十')) {
+      return 10 + (map[value.slice(1)] || 0);
+    }
+    if (value.includes('十')) {
+      const parts = value.split('十');
+      return (map[parts[0]] || 0) * 10 + (map[parts[1]] || 0);
+    }
+    return map[value] || 1;
+  },
+
+  parseAttractionDays(text) {
+    const source = String(text || '').trim();
+    const matcher = /第\s*([一二三四五六七八九十\d]+)\s*天/g;
+    const matches = [];
+    let matched = matcher.exec(source);
+    while (matched) {
+      matches.push({
+        value: matched[1],
+        index: matched.index
+      });
+      matched = matcher.exec(source);
+    }
+    if (matches.length < 2) {
+      return [];
+    }
+    return matches.map((item, index) => {
+      const next = matches[index + 1];
+      const content = source.slice(item.index, next ? next.index : source.length);
+      const dayNumber = this.parseDayNumber(item.value);
+      return {
+        id: `day-${dayNumber}`,
+        title: `第${dayNumber}天`,
+        dateLabel: '',
+        attractions: this.parseNaturalAttractions(content)
+      };
+    }).filter(day => day.attractions.length);
+  },
+
   getBills(tripId) {
     const bills = wx.getStorageSync('tripBills') || [];
-    return bills.filter(item => item.tripId === tripId);
+    return bills
+      .filter(item => item.tripId === tripId)
+      .map(item => {
+        const members = this.parseBillMembers(item.members);
+        return {
+          ...item,
+          members,
+          memberText: item.memberText || members.join('、')
+        };
+      });
+  },
+
+  parseBillMembers(value) {
+    if (Array.isArray(value)) {
+      return value.map(item => String(item).trim()).filter(Boolean);
+    }
+    return String(value || '')
+      .split(/[,，、\s]+/)
+      .map(item => item.trim())
+      .filter(Boolean);
   },
 
   addBill(tripId, data) {
     const bills = wx.getStorageSync('tripBills') || [];
+    const members = this.parseBillMembers(data.members);
     const bill = {
       id: `bill-${Date.now()}-${bills.length}`,
       tripId,
@@ -1173,9 +1277,11 @@ App({
       payment: data.payment || '未填写',
       paid: data.paid !== false,
       participants: Math.max(1, Number(data.participants) || 1),
-      payer: data.payer || ''
+      payer: data.payer || '',
+      members
     };
-    bill.shareAmount = Math.round((bill.amount / bill.participants) * 100) / 100;
+    bill.shareAmount = Math.round((bill.amount / (members.length || bill.participants)) * 100) / 100;
+    bill.memberText = members.join('、');
     wx.setStorageSync('tripBills', bills.concat(bill));
     return bill;
   },
@@ -1187,14 +1293,17 @@ App({
       if (item.id !== id) {
         return item;
       }
+      const members = patch.members !== undefined ? this.parseBillMembers(patch.members) : (item.members || []);
       updated = {
         ...item,
         ...patch,
         amount: patch.amount !== undefined ? Number(patch.amount) || 0 : item.amount,
         participants: patch.participants !== undefined ? Math.max(1, Number(patch.participants) || 1) : (item.participants || 1),
-        payer: patch.payer !== undefined ? patch.payer : item.payer
+        payer: patch.payer !== undefined ? patch.payer : item.payer,
+        members
       };
-      updated.shareAmount = Math.round((updated.amount / updated.participants) * 100) / 100;
+      updated.shareAmount = Math.round((updated.amount / (members.length || updated.participants)) * 100) / 100;
+      updated.memberText = members.join('、');
       return updated;
     });
     wx.setStorageSync('tripBills', nextBills);
@@ -1204,6 +1313,27 @@ App({
   removeBill(id) {
     const bills = wx.getStorageSync('tripBills') || [];
     wx.setStorageSync('tripBills', bills.filter(item => item.id !== id));
+  },
+
+  buildAASettlements(bills) {
+    return bills.reduce((list, bill) => {
+      const members = this.parseBillMembers(bill.members);
+      const payer = String(bill.payer || '').trim();
+      const participantCount = members.length || Number(bill.participants) || 1;
+      const shareAmount = Math.round((Number(bill.amount || 0) / participantCount) * 100) / 100;
+      if (!payer || participantCount <= 1) {
+        return list;
+      }
+      const debtors = members.length ? members.filter(name => name !== payer) : [];
+      return list.concat(debtors.map(name => ({
+        billId: bill.id,
+        billTitle: bill.title,
+        from: name,
+        to: payer,
+        amount: shareAmount,
+        text: `${name}欠${payer} ¥${shareAmount}`
+      })));
+    }, []);
   },
 
   getBillSummary(tripId) {
@@ -1218,9 +1348,14 @@ App({
       .filter(item => item.type !== 'budget' && item.category === '交通')
       .reduce((sum, item) => sum + item.amount, 0);
     const trafficDelta = trafficActual - routeBudget;
-    const aaBills = bills.filter(item => item.type !== 'budget' && Number(item.participants) > 1);
+    const aaBills = bills.filter(item => {
+      return item.type !== 'budget' && (Number(item.participants) > 1 || this.parseBillMembers(item.members).length > 1);
+    });
     const aaTotal = aaBills.reduce((sum, item) => sum + item.amount, 0);
-    const aaParticipants = aaBills.reduce((max, item) => Math.max(max, Number(item.participants) || 1), 0);
+    const aaParticipants = aaBills.reduce((max, item) => {
+      return Math.max(max, this.parseBillMembers(item.members).length || Number(item.participants) || 1);
+    }, 0);
+    const aaSettlements = this.buildAASettlements(aaBills);
     const categories = names.map(name => {
       const related = bills.filter(item => item.category === name);
       return {
@@ -1245,7 +1380,8 @@ App({
       aaSummary: {
         total: aaTotal,
         participants: aaParticipants,
-        average: aaParticipants ? Math.round((aaTotal / aaParticipants) * 100) / 100 : 0
+        average: aaParticipants ? Math.round((aaTotal / aaParticipants) * 100) / 100 : 0,
+        settlements: aaSettlements
       },
       categories,
       bills,
@@ -2133,15 +2269,34 @@ App({
     }, null, 2);
   },
 
-  importBackup(text) {
-    const backup = JSON.parse(text);
-    const data = backup.data || {};
+  validateBackup(text) {
+    let backup;
+    try {
+      backup = JSON.parse(text);
+    } catch (error) {
+      throw new Error('备份格式不正确');
+    }
+    if (!backup || typeof backup !== 'object' || !backup.data || typeof backup.data !== 'object') {
+      throw new Error('备份格式不正确');
+    }
+    if (backup.version !== 1) {
+      throw new Error('备份版本不兼容');
+    }
+    return backup;
+  },
+
+  restoreBackup(backup) {
+    const data = backup.data;
     this.getBackupKeys().forEach(key => {
       if (Object.prototype.hasOwnProperty.call(data, key)) {
         wx.setStorageSync(key, data[key]);
       }
     });
-    return { imported: true };
+    return { imported: true, version: backup.version };
+  },
+
+  importBackup(text) {
+    return this.restoreBackup(this.validateBackup(text));
   },
 
   buildMemoCalendarReminder(tripId, memoId) {
@@ -2163,6 +2318,50 @@ App({
       endTime: Math.floor((start.getTime() + 30 * 60000) / 1000),
       alarmOffset: 15 * 60
     };
+  },
+
+  scheduleMemoReminder(tripId, memoId) {
+    const reminder = this.buildMemoCalendarReminder(tripId, memoId);
+    if (!reminder) {
+      return Promise.resolve({ channel: 'none' });
+    }
+    const templateIds = this.globalData.reminderTemplateIds || [];
+    const fallbackToCalendar = () => new Promise(resolve => {
+      if (typeof wx.addPhoneCalendar !== 'function') {
+        resolve({ channel: 'none' });
+        return;
+      }
+      wx.addPhoneCalendar({
+        ...reminder,
+        success() {
+          resolve({ channel: 'calendar' });
+        },
+        fail() {
+          resolve({ channel: 'none' });
+        }
+      });
+    });
+
+    if (!templateIds.length || typeof wx.requestSubscribeMessage !== 'function') {
+      return fallbackToCalendar();
+    }
+
+    return new Promise(resolve => {
+      wx.requestSubscribeMessage({
+        tmplIds: templateIds,
+        success: result => {
+          const accepted = templateIds.some(id => result[id] === 'accept');
+          if (accepted) {
+            resolve({ channel: 'subscribe' });
+            return;
+          }
+          fallbackToCalendar().then(resolve);
+        },
+        fail() {
+          fallbackToCalendar().then(resolve);
+        }
+      });
+    });
   },
 
   resetUserData() {

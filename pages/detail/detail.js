@@ -272,28 +272,13 @@ Page({
   },
 
   addMemoToCalendar(event) {
-    const reminder = app.buildMemoCalendarReminder(this.data.detail.trip.id, event.currentTarget.dataset.id);
-    if (!reminder || typeof wx.addPhoneCalendar !== 'function') {
-      wx.showToast({
-        title: '当前环境不支持日历提醒',
-        icon: 'none'
+    app.scheduleMemoReminder(this.data.detail.trip.id, event.currentTarget.dataset.id)
+      .then(result => {
+        const success = result.channel === 'subscribe' || result.channel === 'calendar';
+        wx.showToast({
+          title: success ? '提醒已设置' : '当前环境不支持提醒',
+          icon: success ? 'success' : 'none'
+        });
       });
-      return;
-    }
-    wx.addPhoneCalendar({
-      ...reminder,
-      success() {
-        wx.showToast({
-          title: '已加入日历',
-          icon: 'success'
-        });
-      },
-      fail() {
-        wx.showToast({
-          title: '日历提醒未添加',
-          icon: 'none'
-        });
-      }
-    });
   }
 });

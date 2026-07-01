@@ -59,22 +59,35 @@ Page({
   },
 
   importBackup() {
+    let backup;
     try {
-      app.importBackup(this.data.backupText);
-      this.setData({
-        backupStatus: '备份已导入。'
-      });
-      wx.showToast({
-        title: '导入成功',
-        icon: 'success'
-      });
-      this.onShow();
+      backup = app.validateBackup(this.data.backupText);
     } catch (error) {
       wx.showToast({
-        title: '备份格式不正确',
+        title: error.message || '备份格式不正确',
         icon: 'none'
       });
+      return;
     }
+
+    wx.showModal({
+      title: '导入备份',
+      content: '导入后会覆盖当前本地数据，确认继续吗？',
+      success: result => {
+        if (!result.confirm) {
+          return;
+        }
+        app.restoreBackup(backup);
+        this.setData({
+          backupStatus: '备份已导入。'
+        });
+        wx.showToast({
+          title: '导入成功',
+          icon: 'success'
+        });
+        this.onShow();
+      }
+    });
   },
 
   resetData() {

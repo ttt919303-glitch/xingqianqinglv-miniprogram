@@ -8,6 +8,9 @@ const root = path.resolve(__dirname, '..');
 function loadMiniProgram() {
   const storage = {};
   const pages = {};
+  const modalCalls = [];
+  const calendarCalls = [];
+  const subscribeCalls = [];
   let appInstance;
 
   const wx = {
@@ -19,6 +22,24 @@ function loadMiniProgram() {
     },
     setNavigationBarTitle() {},
     showToast() {},
+    showModal(options) {
+      modalCalls.push(options);
+      if (options.success) {
+        options.success({ confirm: true });
+      }
+    },
+    requestSubscribeMessage(options) {
+      subscribeCalls.push(options);
+      if (options.fail) {
+        options.fail({ errMsg: 'no template' });
+      }
+    },
+    addPhoneCalendar(options) {
+      calendarCalls.push(options);
+      if (options.success) {
+        options.success({ errMsg: 'addPhoneCalendar:ok' });
+      }
+    },
     switchTab(options) {
       if (options.success) {
         options.success();
@@ -56,7 +77,7 @@ function loadMiniProgram() {
   }
 
   run('app.js');
-  return { app: appInstance, run };
+  return { app: appInstance, run, storage, modalCalls, calendarCalls, subscribeCalls };
 }
 
 function createPage(pageConfig, options = {}) {
@@ -76,7 +97,19 @@ function createPage(pageConfig, options = {}) {
 
 function test(name, fn) {
   try {
-    fn();
+    const result = fn();
+    if (result && typeof result.then === 'function') {
+      result
+        .then(() => {
+          console.log(`PASS ${name}`);
+        })
+        .catch(error => {
+          console.error(`FAIL ${name}`);
+          console.error(error.message);
+          process.exitCode = 1;
+        });
+      return;
+    }
     console.log(`PASS ${name}`);
   } catch (error) {
     console.error(`FAIL ${name}`);
@@ -154,4 +187,117 @@ test('route map active spot can be saved as favorite place', () => {
   page.favoriteActiveSpot();
 
   assert.strictEqual(env.app.getFavoritePlaces().some(item => item.name === page.data.activeMapSpot.name), true);
+});
+
+test('Tencent transit route response is parsed from nested line data', () => {
+  const env = loadMiniProgram();
+  const parsed = env.app.parseTencentDirectionData({
+    result: {
+      routes: [
+        {
+          distance: 3200,
+          duration: 28,
+          steps: [
+            {
+              lines: [
+                { title: '\u5730\u94c110\u53f7\u7ebf' }
+              ],
+              polyline: [31239000, 121499000, 10, 10]
+            },
+            {
+              instruction: '\u6b65\u884c\u81f3\u8c6b\u56ed',
+              polyline: [31240000, 121500000, 20, 20]
+            }
+          ]
+        }
+      ]
+    }
+  }, {
+    mode: '\u5730\u94c1',
+    minutes: 35,
+    cost: 4,
+    from: '\u9646\u5bb6\u5634',
+    to: '\u8c6b\u56ed'
+  });
+
+  assert.strictEqual(parsed.source, 'tencent');
+  assert.strictEqual(parsed.minutes, 28);
+  assert.strictEqual(parsed.distanceText, '3.2\u516c\u91cc');
+  assert.strictEqual(JSON.stringify(parsed.transitLines), JSON.stringify(['\u5730\u94c110\u53f7\u7ebf']));
+  assert.ok(parsed.polylinePoints.length > 0);
+});
+
+test('backup import validates format and version before writing storage', () => {
+  const env = loadMiniProgram();
+  env.app.addItem({ categoryId: 'travel', name: '\u58a8\u955c', count: 1 });
+  const before = JSON.stringify(env.storage.customItems);
+
+  assert.throws(() => env.app.importBackup('not json'), /\u5907\u4efd\u683c\u5f0f\u4e0d\u6b63\u786e/);
+  assert.throws(() => env.app.importBackup(JSON.stringify({ version: 2, data: {} })), /\u7248\u672c/);
+  assert.strictEqual(JSON.stringify(env.storage.customItems), before);
+});
+
+test('profile asks before overwriting data during backup import', () => {
+  const env = loadMiniProgram();
+  const profileConfig = env.run('pages/profile/profile.js');
+  const page = createPage(profileConfig);
+  page.triggerLoad = function triggerLoad() {};
+  page.onBackupInput({ detail: { value: env.app.exportBackup() } });
+
+  page.importBackup();
+
+  assert.strictEqual(env.modalCalls.length, 1);
+  assert.ok(env.modalCalls[0].content.includes('\u8986\u76d6'));
+});
+
+test('AA settlement shows who owes the payer', () => {
+  const env = loadMiniProgram();
+  env.app.addBill('shanghai', {
+    title: '\u5348\u9910',
+    category: '\u9910\u996e',
+    amount: 120,
+    type: 'actual',
+    participants: 3,
+    payer: '\u5c0f\u660e',
+    members: '\u5c0f\u660e,\u5c0f\u7ea2,\u5c0f\u674e'
+  });
+
+  const summary = env.app.getBillSummary('shanghai');
+
+  assert.strictEqual(summary.aaSummary.average, 40);
+  assert.strictEqual(JSON.stringify(summary.aaSummary.settlements.map(item => item.text)), JSON.stringify([
+    '\u5c0f\u7ea2\u6b20\u5c0f\u660e \u00a540',
+    '\u5c0f\u674e\u6b20\u5c0f\u660e \u00a540'
+  ]));
+});
+
+test('natural language import can split attractions into different trip days', () => {
+  const env = loadMiniProgram();
+  const trip = env.app.addTrip({
+    city: '\u4e0a\u6d77\u591a\u65e5',
+    startDate: '2026-07-08',
+    endDate: '2026-07-09',
+    attractionsText: '\u7b2c\u4e00\u5929\u4e0a\u5348\u5916\u6ee9\uff0c\u4e0b\u5348\u8c6b\u56ed\uff1b\u7b2c\u4e8c\u5929\u4e0a\u5348\u4e0a\u6d77\u535a\u7269\u9986\uff0c\u4e0b\u5348\u8fea\u58eb\u5c3c'
+  });
+
+  assert.strictEqual(trip.itineraryDays.length, 2);
+  assert.strictEqual(JSON.stringify(trip.itineraryDays[0].attractions.map(item => item.name)), JSON.stringify(['\u5916\u6ee9', '\u8c6b\u56ed']));
+  assert.strictEqual(JSON.stringify(trip.itineraryDays[1].attractions.map(item => item.name)), JSON.stringify(['\u4e0a\u6d77\u535a\u7269\u9986', '\u8fea\u58eb\u5c3c']));
+});
+
+test('memo reminder tries subscription and falls back to phone calendar', () => {
+  const env = loadMiniProgram();
+  const memo = env.app.addMemo('shanghai', {
+    content: '\u68c0\u67e5\u8bc1\u4ef6',
+    category: '\u51fa\u53d1\u524d',
+    date: '2026-07-03',
+    remindTime: '08:30'
+  });
+  env.app.globalData.reminderTemplateIds = ['mock-template-id'];
+
+  return env.app.scheduleMemoReminder('shanghai', memo.id).then(result => {
+    assert.strictEqual(result.channel, 'calendar');
+    assert.strictEqual(env.subscribeCalls.length, 1);
+    assert.strictEqual(env.calendarCalls.length, 1);
+  });
 });

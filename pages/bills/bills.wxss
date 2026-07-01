@@ -52,6 +52,19 @@
   font-weight: 900;
 }
 
+.settlement-card {
+  margin-top: 18rpx;
+  padding: 24rpx;
+  background: #fffaf1;
+}
+
+.settlement-line {
+  margin-top: 10rpx;
+  color: #8a5a20;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
 .summary-item {
   text-align: center;
 }
