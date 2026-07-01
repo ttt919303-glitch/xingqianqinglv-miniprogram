@@ -11,6 +11,8 @@ function loadMiniProgram() {
   const modalCalls = [];
   const calendarCalls = [];
   const subscribeCalls = [];
+  const toastCalls = [];
+  let subscribeResponse = null;
   let appInstance;
 
   const wx = {
@@ -21,7 +23,9 @@ function loadMiniProgram() {
       storage[key] = value;
     },
     setNavigationBarTitle() {},
-    showToast() {},
+    showToast(options) {
+      toastCalls.push(options);
+    },
     showModal(options) {
       modalCalls.push(options);
       if (options.success) {
@@ -30,6 +34,10 @@ function loadMiniProgram() {
     },
     requestSubscribeMessage(options) {
       subscribeCalls.push(options);
+      if (subscribeResponse && options.success) {
+        options.success(subscribeResponse);
+        return;
+      }
       if (options.fail) {
         options.fail({ errMsg: 'no template' });
       }
@@ -77,7 +85,18 @@ function loadMiniProgram() {
   }
 
   run('app.js');
-  return { app: appInstance, run, storage, modalCalls, calendarCalls, subscribeCalls };
+  return {
+    app: appInstance,
+    run,
+    storage,
+    modalCalls,
+    calendarCalls,
+    subscribeCalls,
+    toastCalls,
+    setSubscribeResponse(response) {
+      subscribeResponse = response;
+    }
+  };
 }
 
 function createPage(pageConfig, options = {}) {
@@ -271,6 +290,29 @@ test('AA settlement shows who owes the payer', () => {
   ]));
 });
 
+test('AA settlement includes payer when payer is missing from member list', () => {
+  const env = loadMiniProgram();
+  const bill = env.app.addBill('shanghai', {
+    title: '\u6253\u8f66',
+    category: '\u4ea4\u901a',
+    amount: 120,
+    type: 'actual',
+    participants: 2,
+    payer: '\u5c0f\u660e',
+    members: '\u5c0f\u7ea2,\u5c0f\u674e'
+  });
+
+  const summary = env.app.getBillSummary('shanghai');
+
+  assert.strictEqual(JSON.stringify(bill.members), JSON.stringify(['\u5c0f\u7ea2', '\u5c0f\u674e', '\u5c0f\u660e']));
+  assert.strictEqual(bill.participants, 3);
+  assert.strictEqual(bill.shareAmount, 40);
+  assert.strictEqual(JSON.stringify(summary.aaSummary.settlements.map(item => item.text)), JSON.stringify([
+    '\u5c0f\u7ea2\u6b20\u5c0f\u660e \u00a540',
+    '\u5c0f\u674e\u6b20\u5c0f\u660e \u00a540'
+  ]));
+});
+
 test('natural language import can split attractions into different trip days', () => {
   const env = loadMiniProgram();
   const trip = env.app.addTrip({
@@ -283,6 +325,64 @@ test('natural language import can split attractions into different trip days', (
   assert.strictEqual(trip.itineraryDays.length, 2);
   assert.strictEqual(JSON.stringify(trip.itineraryDays[0].attractions.map(item => item.name)), JSON.stringify(['\u5916\u6ee9', '\u8c6b\u56ed']));
   assert.strictEqual(JSON.stringify(trip.itineraryDays[1].attractions.map(item => item.name)), JSON.stringify(['\u4e0a\u6d77\u535a\u7269\u9986', '\u8fea\u58eb\u5c3c']));
+});
+
+test('natural language import with one day marker still creates a day group', () => {
+  const env = loadMiniProgram();
+  const trip = env.app.addTrip({
+    city: '\u4e0a\u6d77\u5355\u65e5',
+    startDate: '2026-07-08',
+    endDate: '2026-07-08',
+    attractionsText: '\u7b2c\u4e00\u5929\u4e0a\u5348\u5916\u6ee9\uff0c\u4e0b\u5348\u8c6b\u56ed'
+  });
+
+  assert.strictEqual(trip.itineraryDays.length, 1);
+  assert.strictEqual(trip.itineraryDays[0].title, '\u7b2c1\u5929');
+  assert.strictEqual(JSON.stringify(trip.itineraryDays[0].attractions.map(item => item.name)), JSON.stringify(['\u5916\u6ee9', '\u8c6b\u56ed']));
+});
+
+test('reminder status reports missing subscription template configuration', () => {
+  const env = loadMiniProgram();
+  const status = env.app.getReminderConfigStatus();
+
+  assert.strictEqual(status.configured, false);
+  assert.ok(status.text.includes('\u672a\u914d\u7f6e'));
+});
+
+test('memo reminder explains missing subscription template fallback', () => {
+  const env = loadMiniProgram();
+  const memo = env.app.addMemo('shanghai', {
+    content: '\u68c0\u67e5\u8bc1\u4ef6',
+    category: '\u51fa\u53d1\u524d',
+    date: '2026-07-03',
+    remindTime: '08:30'
+  });
+
+  return env.app.scheduleMemoReminder('shanghai', memo.id).then(result => {
+    assert.strictEqual(result.channel, 'calendar');
+    assert.strictEqual(result.reason, 'missing-template');
+    assert.strictEqual(env.subscribeCalls.length, 0);
+    assert.strictEqual(env.calendarCalls.length, 1);
+  });
+});
+
+test('memo reminder explains denied subscription fallback', () => {
+  const env = loadMiniProgram();
+  const memo = env.app.addMemo('shanghai', {
+    content: '\u68c0\u67e5\u8bc1\u4ef6',
+    category: '\u51fa\u53d1\u524d',
+    date: '2026-07-03',
+    remindTime: '08:30'
+  });
+  env.app.globalData.reminderTemplateIds = ['mock-template-id'];
+  env.setSubscribeResponse({ 'mock-template-id': 'reject' });
+
+  return env.app.scheduleMemoReminder('shanghai', memo.id).then(result => {
+    const message = env.app.formatReminderResult(result);
+    assert.strictEqual(result.channel, 'calendar');
+    assert.strictEqual(result.reason, 'subscribe-denied');
+    assert.ok(message.title.includes('\u65e5\u5386'));
+  });
 });
 
 test('memo reminder tries subscription and falls back to phone calendar', () => {

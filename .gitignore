@@ -24,3 +24,4 @@ temp/
 
 # Local private API keys
 config/tencent-map.js
+config/reminder.js

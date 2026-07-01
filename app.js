@@ -9,10 +9,22 @@ const tencentMapLocalConfig = (() => {
   }
 })();
 
+const reminderLocalConfig = (() => {
+  if (typeof require !== 'function') {
+    return {};
+  }
+  try {
+    return require('./config/reminder.js') || {};
+  } catch (error) {
+    return {};
+  }
+})();
+
 App({
   globalData: {
     appName: '春日出游',
     slogan: '轻松规划每一次出发',
+    reminderTemplateIds: reminderLocalConfig.templateIds || [],
     trips: [
       {
         id: 'shanghai',
@@ -1221,7 +1233,7 @@ App({
       });
       matched = matcher.exec(source);
     }
-    if (matches.length < 2) {
+    if (!matches.length) {
       return [];
     }
     return matches.map((item, index) => {
@@ -1261,9 +1273,22 @@ App({
       .filter(Boolean);
   },
 
+  normalizeBillShare(data) {
+    const payer = String(data.payer || '').trim();
+    const members = this.parseBillMembers(data.members);
+    if (payer && members.length && !members.includes(payer)) {
+      members.push(payer);
+    }
+    return {
+      payer,
+      members,
+      participants: Math.max(1, Number(data.participants) || 1, members.length || 0)
+    };
+  },
+
   addBill(tripId, data) {
     const bills = wx.getStorageSync('tripBills') || [];
-    const members = this.parseBillMembers(data.members);
+    const share = this.normalizeBillShare(data);
     const bill = {
       id: `bill-${Date.now()}-${bills.length}`,
       tripId,
@@ -1276,12 +1301,12 @@ App({
       note: data.note || '',
       payment: data.payment || '未填写',
       paid: data.paid !== false,
-      participants: Math.max(1, Number(data.participants) || 1),
-      payer: data.payer || '',
-      members
+      participants: share.participants,
+      payer: share.payer,
+      members: share.members
     };
-    bill.shareAmount = Math.round((bill.amount / (members.length || bill.participants)) * 100) / 100;
-    bill.memberText = members.join('、');
+    bill.shareAmount = Math.round((bill.amount / (share.members.length || bill.participants)) * 100) / 100;
+    bill.memberText = share.members.join('、');
     wx.setStorageSync('tripBills', bills.concat(bill));
     return bill;
   },
@@ -1293,17 +1318,21 @@ App({
       if (item.id !== id) {
         return item;
       }
-      const members = patch.members !== undefined ? this.parseBillMembers(patch.members) : (item.members || []);
+      const share = this.normalizeBillShare({
+        participants: patch.participants !== undefined ? patch.participants : item.participants,
+        payer: patch.payer !== undefined ? patch.payer : item.payer,
+        members: patch.members !== undefined ? patch.members : item.members
+      });
       updated = {
         ...item,
         ...patch,
         amount: patch.amount !== undefined ? Number(patch.amount) || 0 : item.amount,
-        participants: patch.participants !== undefined ? Math.max(1, Number(patch.participants) || 1) : (item.participants || 1),
-        payer: patch.payer !== undefined ? patch.payer : item.payer,
-        members
+        participants: share.participants,
+        payer: share.payer,
+        members: share.members
       };
-      updated.shareAmount = Math.round((updated.amount / (members.length || updated.participants)) * 100) / 100;
-      updated.memberText = members.join('、');
+      updated.shareAmount = Math.round((updated.amount / (share.members.length || updated.participants)) * 100) / 100;
+      updated.memberText = share.members.join('、');
       return updated;
     });
     wx.setStorageSync('tripBills', nextBills);
@@ -1317,9 +1346,10 @@ App({
 
   buildAASettlements(bills) {
     return bills.reduce((list, bill) => {
-      const members = this.parseBillMembers(bill.members);
-      const payer = String(bill.payer || '').trim();
-      const participantCount = members.length || Number(bill.participants) || 1;
+      const share = this.normalizeBillShare(bill);
+      const payer = share.payer;
+      const members = share.members;
+      const participantCount = members.length || share.participants;
       const shareAmount = Math.round((Number(bill.amount || 0) / participantCount) * 100) / 100;
       if (!payer || participantCount <= 1) {
         return list;
@@ -2320,30 +2350,59 @@ App({
     };
   },
 
+  getReminderTemplateIds() {
+    return this.globalData.reminderTemplateIds || [];
+  },
+
+  getReminderConfigStatus() {
+    const count = this.getReminderTemplateIds().length;
+    return {
+      configured: count > 0,
+      count,
+      text: count ? `已配置 ${count} 个订阅消息模板` : '未配置订阅消息模板，将使用手机日历兜底'
+    };
+  },
+
+  formatReminderResult(result) {
+    const messages = {
+      subscribe: { title: '订阅提醒已设置', icon: 'success' },
+      calendar: { title: '已改用日历提醒', icon: 'success' },
+      none: { title: '当前环境不支持提醒', icon: 'none' }
+    };
+    const base = messages[result.channel] || messages.none;
+    if (result.reason === 'missing-template') {
+      return { title: '未配置订阅模板，已改用日历', icon: base.icon };
+    }
+    if (result.reason === 'subscribe-denied') {
+      return { title: '未授权订阅，已改用日历', icon: base.icon };
+    }
+    return base;
+  },
+
   scheduleMemoReminder(tripId, memoId) {
     const reminder = this.buildMemoCalendarReminder(tripId, memoId);
     if (!reminder) {
-      return Promise.resolve({ channel: 'none' });
+      return Promise.resolve({ channel: 'none', reason: 'missing-memo' });
     }
-    const templateIds = this.globalData.reminderTemplateIds || [];
-    const fallbackToCalendar = () => new Promise(resolve => {
+    const templateIds = this.getReminderTemplateIds();
+    const fallbackToCalendar = reason => new Promise(resolve => {
       if (typeof wx.addPhoneCalendar !== 'function') {
-        resolve({ channel: 'none' });
+        resolve({ channel: 'none', reason });
         return;
       }
       wx.addPhoneCalendar({
         ...reminder,
         success() {
-          resolve({ channel: 'calendar' });
+          resolve({ channel: 'calendar', reason });
         },
         fail() {
-          resolve({ channel: 'none' });
+          resolve({ channel: 'none', reason });
         }
       });
     });
 
     if (!templateIds.length || typeof wx.requestSubscribeMessage !== 'function') {
-      return fallbackToCalendar();
+      return fallbackToCalendar('missing-template');
     }
 
     return new Promise(resolve => {
@@ -2352,13 +2411,13 @@ App({
         success: result => {
           const accepted = templateIds.some(id => result[id] === 'accept');
           if (accepted) {
-            resolve({ channel: 'subscribe' });
+            resolve({ channel: 'subscribe', reason: 'accepted' });
             return;
           }
-          fallbackToCalendar().then(resolve);
+          fallbackToCalendar('subscribe-denied').then(resolve);
         },
         fail() {
-          fallbackToCalendar().then(resolve);
+          fallbackToCalendar('subscribe-failed').then(resolve);
         }
       });
     });

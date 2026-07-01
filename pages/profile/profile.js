@@ -3,6 +3,7 @@ const app = getApp();
 Page({
   data: {
     progress: {},
+    reminderStatus: {},
     backupText: '',
     backupStatus: '',
     stats: [],
@@ -18,6 +19,7 @@ Page({
     const progress = app.getOverallProgress();
     this.setData({
       progress,
+      reminderStatus: app.getReminderConfigStatus(),
       stats: [
         { label: '全部行程', value: app.getTrips().length },
         { label: '清单分类', value: app.getCategories().length },

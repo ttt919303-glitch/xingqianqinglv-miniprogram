@@ -274,10 +274,10 @@ Page({
   addMemoToCalendar(event) {
     app.scheduleMemoReminder(this.data.detail.trip.id, event.currentTarget.dataset.id)
       .then(result => {
-        const success = result.channel === 'subscribe' || result.channel === 'calendar';
+        const message = app.formatReminderResult(result);
         wx.showToast({
-          title: success ? '提醒已设置' : '当前环境不支持提醒',
-          icon: success ? 'success' : 'none'
+          title: message.title,
+          icon: message.icon
         });
       });
   }
