@@ -10,12 +10,13 @@
   padding: 14rpx 26rpx;
   border-radius: 999rpx;
   background: #ffffff;
-  color: #7b8492;
+  color: #8a95a5;
   font-weight: 800;
+  border: 2rpx solid rgba(234, 223, 210, 0.75);
 }
 
 .trip-tab.active {
-  background: #4a9fe8;
+  background: linear-gradient(135deg, #7bcbff, #9de7d7);
   color: #ffffff;
 }
 
@@ -32,8 +33,8 @@
   padding: 16rpx 20rpx;
   border-radius: 22rpx;
   background: #ffffff;
-  color: #687382;
-  border: 1rpx solid #dfe8f3;
+  color: #6f7a89;
+  border: 2rpx solid rgba(234, 223, 210, 0.9);
   font-weight: 900;
 }
 
@@ -45,9 +46,9 @@
 }
 
 .day-tab.active {
-  background: #e7f7f4;
-  color: #269384;
-  border-color: rgba(84, 199, 184, 0.45);
+  background: #eef9f5;
+  color: #2f9b8f;
+  border-color: rgba(157, 231, 215, 0.75);
 }
 
 .filter-tabs {
@@ -61,14 +62,14 @@
   flex: 0 0 auto;
   padding: 10rpx 20rpx;
   border-radius: 999rpx;
-  background: #eef7ff;
-  color: #4a6f95;
+  background: #fff8ee;
+  color: #6f7a89;
   font-size: 24rpx;
   font-weight: 800;
 }
 
 .filter-tab.active {
-  background: #54c7b8;
+  background: #9de7d7;
   color: #ffffff;
 }
 
@@ -79,7 +80,7 @@
 
 .form-title {
   margin-bottom: 18rpx;
-  color: #20242a;
+  color: #2f3a4a;
   font-size: 30rpx;
   font-weight: 900;
 }
@@ -96,7 +97,7 @@
 
 .label {
   margin-bottom: 8rpx;
-  color: #7b8492;
+  color: #8a95a5;
   font-size: 23rpx;
 }
 
@@ -105,8 +106,8 @@ input {
   line-height: 78rpx;
   padding: 0 20rpx;
   border-radius: 18rpx;
-  background: #f6f8fb;
-  color: #20242a;
+  background: #fff8ee;
+  color: #2f3a4a;
   font-size: 25rpx;
 }
 
@@ -118,7 +119,7 @@ input {
   margin-bottom: 18rpx;
   padding: 18rpx 20rpx;
   border-radius: 20rpx;
-  background: #f7fbff;
+  background: #fff8ee;
 }
 
 .poi-address {
@@ -133,8 +134,8 @@ input {
   margin: 0;
   padding: 0;
   border-radius: 999rpx;
-  background: #e7f3ff;
-  color: #2d7fc3;
+  background: #eef9f5;
+  color: #2f9b8f;
   font-size: 23rpx;
   font-weight: 900;
 }
@@ -166,7 +167,7 @@ input {
   position: relative;
   margin-bottom: 24rpx;
   padding: 34rpx 28rpx 28rpx;
-  background: #fff9f0;
+  background: linear-gradient(180deg, #ffffff 0%, #fff4dd 100%);
   overflow: hidden;
 }
 
@@ -191,20 +192,20 @@ input {
 }
 
 .place-name {
-  color: #20242a;
+  color: #2f3a4a;
   font-size: 34rpx;
   font-weight: 900;
 }
 
 .budget {
-  color: #4a9fe8;
+  color: #3a8fd9;
   font-size: 32rpx;
   font-weight: 900;
 }
 
 .place-note {
   margin-top: 18rpx;
-  color: #626b78;
+  color: #6f7a89;
   line-height: 1.55;
 }
 
@@ -213,8 +214,8 @@ input {
   margin: 18rpx 0 22rpx;
   padding: 8rpx 16rpx;
   border-radius: 999rpx;
-  background: #e7f7f4;
-  color: #269384;
+  background: #eef9f5;
+  color: #2f9b8f;
   font-size: 23rpx;
   font-weight: 800;
 }

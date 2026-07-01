@@ -309,6 +309,19 @@ test('行程计划页切换策略会刷新推荐路线', () => {
   assert.ok(page.data.routeSteps.length > 0);
 });
 
+test('route page hides spot form by default and can expand it', () => {
+  const env = loadMiniProgram();
+  const planConfig = env.run('pages/plan/plan.js');
+  const page = createPage(planConfig, { id: 'shanghai' });
+  page.triggerLoad();
+
+  assert.strictEqual(page.data.showSpotForm, false);
+
+  page.toggleSpotForm();
+
+  assert.strictEqual(page.data.showSpotForm, true);
+});
+
 test('景点上移下移后会保存顺序并重新估算时间轴', () => {
   const env = loadMiniProgram();
   const trip = env.app.addTrip({

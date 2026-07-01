@@ -32,6 +32,7 @@ Page({
     },
     activeMapSpot: null,
     editMode: false,
+    showSpotForm: false,
     draggingSpotIndex: -1,
     editingSpotIndex: -1,
     spotForm: {
@@ -170,7 +171,16 @@ Page({
         lat: '',
         lng: ''
       },
-      spotPoiResults: []
+      spotPoiResults: [],
+      showSpotForm: false
+    });
+  },
+
+  toggleSpotForm() {
+    this.setData({
+      showSpotForm: !this.data.showSpotForm,
+      editingSpotIndex: this.data.showSpotForm ? -1 : this.data.editingSpotIndex,
+      spotPoiResults: this.data.showSpotForm ? [] : this.data.spotPoiResults
     });
   },
 
@@ -192,6 +202,7 @@ Page({
     }
     this.setData({
       editingSpotIndex: index,
+      showSpotForm: true,
       spotForm: {
         time: spot.time || '09:00',
         name: spot.name || '',

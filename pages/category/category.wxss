@@ -21,7 +21,7 @@
   grid-template-columns: repeat(3, 1fr);
   margin: 34rpx 0 18rpx;
   overflow: hidden;
-  border: 1rpx solid #dfe6ef;
+  border: 2rpx solid rgba(234, 223, 210, 0.9);
   border-radius: 18rpx;
   background: #ffffff;
 }
@@ -30,8 +30,8 @@
   height: 76rpx;
   line-height: 76rpx;
   text-align: center;
-  color: #626b78;
-  border-right: 1rpx solid #edf1f6;
+  color: #6f7a89;
+  border-right: 2rpx solid #f2eadf;
 }
 
 .tab:last-child {
@@ -39,8 +39,8 @@
 }
 
 .tab.active {
-  background: #e7f3ff;
-  color: #3388cf;
+  background: #e9fbf6;
+  color: #2f9b8f;
   font-weight: 800;
 }
 
@@ -67,14 +67,15 @@
   position: relative;
   min-height: 286rpx;
   padding: 28rpx 26rpx;
-  border: 1rpx solid #e5ebf2;
-  border-radius: 22rpx;
-  background: #ffffff;
+  border: 2rpx solid rgba(255, 210, 166, 0.6);
+  border-radius: 30rpx;
+  background: linear-gradient(180deg, #ffffff 0%, #fffdf8 100%);
+  box-shadow: 0 10rpx 22rpx rgba(90, 72, 55, 0.06);
 }
 
 .item-card.packed {
-  border-color: rgba(84, 199, 184, 0.55);
-  background: #fbfffe;
+  border-color: rgba(157, 231, 215, 0.9);
+  background: #f2fffb;
 }
 
 .item-more {
@@ -94,17 +95,18 @@
 .item-name {
   font-size: 30rpx;
   font-weight: 700;
+  color: #2f3a4a;
 }
 
 .item-count {
   margin-top: 8rpx;
-  color: #1d2430;
+  color: #2f3a4a;
 }
 
 .item-note {
   width: 78%;
   margin-top: 8rpx;
-  color: #89919e;
+  color: #8a95a5;
   font-size: 22rpx;
   line-height: 1.45;
 }
@@ -124,8 +126,8 @@
 }
 
 .packed .check {
-  border-color: #54c7b8;
-  background: #54c7b8;
+  border-color: #9de7d7;
+  background: #9de7d7;
 }
 
 .float-add {
@@ -136,8 +138,8 @@
   height: 104rpx;
   line-height: 98rpx;
   border-radius: 50%;
-  background: #ffffff;
-  color: #1f4f7a;
+  background: linear-gradient(135deg, #7bcbff, #8edfe1);
+  color: #ffffff;
   font-size: 58rpx;
-  box-shadow: 0 18rpx 42rpx rgba(31, 45, 61, 0.16);
+  box-shadow: 0 18rpx 42rpx rgba(123, 203, 255, 0.28);
 }

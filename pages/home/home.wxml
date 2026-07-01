@@ -9,8 +9,8 @@
 
     <view class="hero">
       <view>
-        <view class="title">即将出发</view>
-        <view class="subtitle">{{trips.length}} 个行程 · {{progress.percent}}% 已准备</view>
+        <view class="title">今天想去哪里呀？</view>
+        <view class="subtitle">把路线、行李、账单都整理好</view>
       </view>
       <view class="hero-badge">春游</view>
     </view>
@@ -23,7 +23,7 @@
               <view class="trip-city">{{item.city}}</view>
               <view class="trip-date">{{item.dateRange}}</view>
             </view>
-            <view class="more">•••</view>
+            <view class="status-sticker">{{item.statusText}}</view>
           </view>
           <view class="scene">
             <view class="sun"></view>

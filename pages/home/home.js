@@ -12,6 +12,7 @@ Page({
     const progress = app.getOverallProgress();
     const trips = app.getTrips().map(item => ({
       ...item,
+      statusText: item.status || '未出发',
       percent: Math.round((item.packed / item.total) * 100)
     }));
     this.setData({

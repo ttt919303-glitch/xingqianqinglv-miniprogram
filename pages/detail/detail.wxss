@@ -3,16 +3,17 @@
   align-items: center;
   justify-content: space-between;
   padding: 34rpx;
-  background: linear-gradient(135deg, #fff9f0 0%, #e8f5ff 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f0fbff 54%, #fff0df 100%);
 }
 
 .hero-sticker {
   padding: 18rpx 20rpx;
   border-radius: 24rpx;
-  background: #ffd166;
+  background: #ffd978;
   color: #7a560e;
   font-weight: 900;
   transform: rotate(4deg);
+  box-shadow: 0 8rpx 18rpx rgba(90, 72, 55, 0.12);
 }
 
 .day-tabs {
@@ -28,15 +29,15 @@
   padding: 18rpx 22rpx;
   border-radius: 24rpx;
   background: #ffffff;
-  color: #687382;
-  border: 1rpx solid #dfe8f3;
-  box-shadow: 0 8rpx 20rpx rgba(31, 45, 61, 0.06);
+  color: #6f7a89;
+  border: 2rpx solid rgba(234, 223, 210, 0.9);
+  box-shadow: 0 8rpx 18rpx rgba(90, 72, 55, 0.06);
 }
 
 .day-tab.active {
-  background: #4a9fe8;
+  background: linear-gradient(135deg, #7bcbff, #9de7d7);
   color: #ffffff;
-  border-color: #4a9fe8;
+  border-color: transparent;
 }
 
 .day-title {
@@ -53,18 +54,18 @@
 .day-overview {
   margin-top: 22rpx;
   padding: 28rpx;
-  background: #f7fbff;
+  background: linear-gradient(180deg, #ffffff 0%, #fffaf2 100%);
 }
 
 .overview-title {
-  color: #20242a;
+  color: #2f3a4a;
   font-size: 30rpx;
   font-weight: 900;
 }
 
 .overview-route {
   margin-top: 10rpx;
-  color: #626b78;
+  color: #6f7a89;
   line-height: 1.55;
 }
 
@@ -78,12 +79,12 @@
 .overview-grid > view {
   padding: 16rpx 8rpx;
   border-radius: 18rpx;
-  background: #ffffff;
+  background: #fff8ee;
   text-align: center;
 }
 
 .overview-num {
-  color: #2d7fc3;
+  color: #3a8fd9;
   font-size: 27rpx;
   font-weight: 900;
 }
@@ -109,26 +110,60 @@
 
 .module-card {
   position: relative;
+  min-height: 146rpx;
+  overflow: hidden;
+  background: linear-gradient(180deg, #ffffff 0%, #fffdf8 100%);
 }
 
 .module-card::after {
-  content: '›';
+  content: '';
   position: absolute;
-  right: 24rpx;
-  top: 28rpx;
-  color: #b7c1ce;
-  font-size: 34rpx;
-  font-weight: 900;
+  right: -18rpx;
+  top: 34rpx;
+  width: 58rpx;
+  height: 58rpx;
+  border-radius: 50%;
+  background: #fff8ee;
+  border: 2rpx solid rgba(255, 210, 166, 0.5);
+}
+
+.module-card:nth-child(1) {
+  border-style: dashed;
+  border-color: rgba(123, 203, 255, 0.7);
+}
+
+.module-card:nth-child(2) {
+  background: #fff4dd;
+  transform: rotate(-1deg);
+}
+
+.module-card:nth-child(3) {
+  border-style: dashed;
+  border-color: rgba(255, 183, 165, 0.65);
+}
+
+.module-card:nth-child(4) {
+  background: #eef9f5;
+  transform: rotate(1deg);
+}
+
+.module-card:nth-child(5) {
+  background: #fff7fa;
+}
+
+.module-card:nth-child(6) {
+  background: #f0fbff;
 }
 
 .module-name {
   font-size: 28rpx;
   font-weight: 900;
+  color: #2f3a4a;
 }
 
 .module-desc {
   margin-top: 10rpx;
-  color: #7b8492;
+  color: #8a95a5;
   font-size: 24rpx;
 }
 
@@ -136,7 +171,8 @@
   display: flex;
   gap: 22rpx;
   padding: 30rpx;
-  border: 2rpx dashed rgba(255, 209, 102, 0.65);
+  border: 2rpx dashed rgba(255, 183, 165, 0.72);
+  background: linear-gradient(90deg, #ffffff 0%, #ffffff 70%, #fff4dd 100%);
 }
 
 .ticket-icon {
@@ -145,14 +181,14 @@
   line-height: 84rpx;
   text-align: center;
   border-radius: 26rpx;
-  background: #eef7ff;
+  background: #eef9f5;
   font-size: 42rpx;
 }
 
 .ticket-code,
 .memo-title,
 .split-num {
-  color: #20242a;
+  color: #2f3a4a;
   font-size: 32rpx;
   font-weight: 900;
 }
@@ -160,13 +196,13 @@
 .ticket-time,
 .ticket-note {
   margin-top: 8rpx;
-  color: #6b7480;
+  color: #6f7a89;
   font-size: 24rpx;
 }
 
 .ticket-price {
   margin-top: 8rpx;
-  color: #269384;
+  color: #2f9b8f;
   font-size: 24rpx;
   font-weight: 900;
 }
@@ -186,7 +222,9 @@
 
 .memo-card {
   padding: 28rpx;
-  background: #fff9f0;
+  background: #fff4dd;
+  border-style: dashed;
+  transform: rotate(-0.4deg);
 }
 
 .memo-head {
@@ -201,8 +239,8 @@
   flex: 0 0 auto;
   padding: 8rpx 16rpx;
   border-radius: 999rpx;
-  background: #e7f7f4;
-  color: #269384;
+  background: #eef9f5;
+  color: #2f9b8f;
   font-size: 22rpx;
   font-weight: 900;
 }
@@ -219,13 +257,13 @@
   padding: 8rpx 16rpx;
   border-radius: 999rpx;
   background: #ffffff;
-  color: #7b8492;
+  color: #8a95a5;
   font-size: 22rpx;
   font-weight: 800;
 }
 
 .memo-category.active {
-  background: #4a9fe8;
+  background: #7bcbff;
   color: #ffffff;
 }
 
@@ -247,14 +285,14 @@
   height: 48rpx;
   line-height: 48rpx;
   border-radius: 50%;
-  background: #e7f7f4;
-  color: #269384;
+  background: #eef9f5;
+  color: #2f9b8f;
   text-align: center;
   font-weight: 900;
 }
 
 .memo-line {
-  color: #20242a;
+  color: #2f3a4a;
   font-size: 28rpx;
   font-weight: 900;
 }
@@ -278,7 +316,7 @@
   padding: 0 18rpx;
   border-radius: 999rpx;
   background: #ffffff;
-  color: #4a9fe8;
+  color: #3a8fd9;
   font-size: 24rpx;
   font-weight: 900;
 }
@@ -290,11 +328,12 @@
 .form-card {
   margin: 24rpx 0;
   padding: 28rpx;
+  background: linear-gradient(180deg, #ffffff 0%, #fffdf8 100%);
 }
 
 .form-title {
   margin-bottom: 20rpx;
-  color: #20242a;
+  color: #2f3a4a;
   font-size: 30rpx;
   font-weight: 900;
 }
@@ -311,7 +350,7 @@
 
 .label {
   margin-bottom: 8rpx;
-  color: #7b8492;
+  color: #8a95a5;
   font-size: 23rpx;
 }
 
@@ -320,7 +359,11 @@ input {
   line-height: 78rpx;
   padding: 0 20rpx;
   border-radius: 18rpx;
-  background: #f6f8fb;
-  color: #20242a;
+  background: #fff8ee;
+  color: #2f3a4a;
   font-size: 25rpx;
+}
+
+.split-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fffaf2 100%);
 }

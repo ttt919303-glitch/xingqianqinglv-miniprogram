@@ -36,9 +36,12 @@
 
   <view class="section-head">
     <view class="section-title">当天景点</view>
-    <button class="mini-btn" bindtap="toggleEditMode">{{editMode ? '完成' : '编辑顺序'}}</button>
+    <view class="section-actions">
+      <button class="mini-btn" bindtap="toggleSpotForm">{{showSpotForm ? '收起' : '添加景点'}}</button>
+      <button class="mini-btn" bindtap="toggleEditMode">{{editMode ? '完成' : '编辑顺序'}}</button>
+    </view>
   </view>
-  <view class="spot-form card">
+  <view wx:if="{{showSpotForm || editingSpotIndex >= 0}}" class="spot-form card">
     <view class="form-title">{{editingSpotIndex >= 0 ? '编辑景点' : '新增景点'}}</view>
     <view class="field-row">
       <view class="field">

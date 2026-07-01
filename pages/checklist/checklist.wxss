@@ -8,7 +8,8 @@
   width: 112rpx;
   height: 112rpx;
   border-radius: 32rpx;
-  background: #fff2d8;
+  background: linear-gradient(135deg, #ffd978, #ffb7a5);
+  box-shadow: inset 0 -8rpx 0 rgba(90, 72, 55, 0.08);
 }
 
 .summary {
@@ -25,8 +26,8 @@
   justify-content: center;
   width: 160rpx;
   height: 160rpx;
-  border: 18rpx solid #4a9fe8;
-  border-left-color: #eef2f6;
+  border: 18rpx solid #7bcbff;
+  border-left-color: #f2eadf;
   border-radius: 50%;
 }
 
@@ -37,7 +38,7 @@
 
 .summary-title {
   font-size: 32rpx;
-  color: #7b8492;
+  color: #8a95a5;
 }
 
 .summary-count {
@@ -61,7 +62,8 @@
 .library-card {
   flex: 0 0 286rpx;
   padding: 24rpx;
-  background: #fff9f0;
+  background: #fff4dd;
+  border-style: dashed;
 }
 
 .library-icon {
@@ -76,7 +78,7 @@
 
 .library-name {
   margin-top: 16rpx;
-  color: #20242a;
+  color: #2f3a4a;
   font-size: 28rpx;
   font-weight: 900;
 }
@@ -84,7 +86,7 @@
 .library-desc {
   margin-top: 8rpx;
   min-height: 70rpx;
-  color: #7b8492;
+  color: #8a95a5;
   font-size: 22rpx;
   line-height: 1.45;
 }
@@ -94,8 +96,8 @@
   margin-top: 14rpx;
   padding: 7rpx 14rpx;
   border-radius: 999rpx;
-  background: #e7f7f4;
-  color: #269384;
+  background: #eef9f5;
+  color: #2f9b8f;
   font-size: 21rpx;
   font-weight: 800;
 }
@@ -118,7 +120,8 @@
   padding: 20rpx;
   border-radius: 24rpx;
   background: #ffffff;
-  box-shadow: 0 10rpx 24rpx rgba(31, 45, 61, 0.06);
+  border: 2rpx solid rgba(255, 210, 166, 0.55);
+  box-shadow: 0 10rpx 24rpx rgba(90, 72, 55, 0.06);
 }
 
 .weather-icon {
@@ -126,20 +129,20 @@
   height: 64rpx;
   line-height: 64rpx;
   border-radius: 20rpx;
-  background: #eef7ff;
+  background: #eef9f5;
   text-align: center;
   font-size: 34rpx;
 }
 
 .weather-name {
-  color: #20242a;
+  color: #2f3a4a;
   font-size: 28rpx;
   font-weight: 900;
 }
 
 .weather-desc {
   margin-top: 6rpx;
-  color: #7b8492;
+  color: #8a95a5;
   font-size: 22rpx;
   line-height: 1.45;
 }
@@ -154,6 +157,7 @@
   min-height: 142rpx;
   margin-bottom: 22rpx;
   padding: 28rpx;
+  background: linear-gradient(180deg, #ffffff 0%, #fffdf8 100%);
 }
 
 .cat-icon {
@@ -177,6 +181,7 @@
   margin-bottom: 8rpx;
   font-size: 34rpx;
   font-weight: 800;
+  color: #2f3a4a;
 }
 
 .category-card .progress-line {
@@ -197,6 +202,6 @@
   grid-template-columns: 1fr 1fr;
   gap: 22rpx;
   padding: 22rpx 32rpx 42rpx;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 -12rpx 28rpx rgba(31, 45, 61, 0.06);
+  background: rgba(255, 248, 238, 0.94);
+  box-shadow: 0 -12rpx 28rpx rgba(90, 72, 55, 0.08);
 }
