@@ -128,6 +128,7 @@
         {{routeLoading ? '生成中' : '获取腾讯路线'}}
       </button>
     </view>
+    <view class="route-source-text">{{routeSourceText}}</view>
     <view wx:if="{{routeError}}" class="route-error">{{routeError}}</view>
     <view class="assistant-panel">
       <view>
@@ -195,6 +196,10 @@
         <view>
           <view class="route-step-title">{{item.title}}</view>
           <view class="route-step-desc">{{item.desc}} <text wx:if="{{item.cost}}">· 约 ¥{{item.cost}}</text></view>
+          <view class="route-line-meta">
+            <text>{{item.sourceLabel}}</text>
+            <text wx:if="{{item.transitLinesText}}"> · {{item.transitLinesText}}</text>
+          </view>
           <view wx:if="{{item.options.length}}" class="segment-options">
             <view wx:for="{{item.options}}" wx:for-item="option" wx:key="mode" class="segment-option {{option.active ? 'active' : ''}}" bindtap="chooseSegmentMode" data-from="{{item.from}}" data-to="{{item.to}}" data-mode="{{option.mode}}">
               {{option.mode}} {{option.minutes}}分

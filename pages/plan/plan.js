@@ -47,6 +47,7 @@ Page({
     },
     spotPoiResults: [],
     routeSource: 'local',
+    routeSourceText: '',
     routeLoading: false,
     routeError: '',
     assistantResultText: ''
@@ -305,6 +306,34 @@ Page({
     }
   },
 
+  formatRouteSourceText(source) {
+    return source === 'tencent'
+      ? '腾讯地图实时结果，时间和路线来自腾讯位置服务'
+      : '本地估算，非实时导航结果，可点击获取腾讯路线校准';
+  },
+
+  formatRouteStep(item, index, routeSource = 'local') {
+    const transitLines = item.transitLines || [];
+    const source = item.source || routeSource;
+    return {
+      title: item.title,
+      desc: item.desc,
+      from: item.from,
+      to: item.to,
+      mode: item.mode,
+      minutes: item.minutes,
+      cost: item.cost || 0,
+      transitLines,
+      transitLinesText: transitLines.join(' / '),
+      sourceLabel: source === 'tencent' ? '腾讯实时' : '本地估算',
+      options: (item.options || []).map(option => ({
+        ...option,
+        active: option.mode === item.mode
+      })),
+      active: index === 0
+    };
+  },
+
   buildRoute() {
     const trip = this.data.trip;
     if (!trip) {
@@ -312,20 +341,7 @@ Page({
     }
     const routePlan = app.buildRoutePlan(trip, this.data.strategyId);
     const routeSteps = routePlan.segments.map((item, index) => {
-      return {
-        title: item.title,
-        desc: item.desc,
-        from: item.from,
-        to: item.to,
-        mode: item.mode,
-        minutes: item.minutes,
-        cost: item.cost || 0,
-        options: (item.options || []).map(option => ({
-          ...option,
-          active: option.mode === item.mode
-        })),
-        active: index === 0
-      };
+      return this.formatRouteStep(item, index, routePlan.source || 'local');
     });
     if (routePlan.orderedAttractions.length) {
       const last = routePlan.orderedAttractions[routePlan.orderedAttractions.length - 1];
@@ -345,26 +361,16 @@ Page({
       timeline: app.buildEditableTimeline({ ...trip, attractions: routePlan.orderedAttractions }),
       mapPreview: app.buildRouteMapPreview(trip, routePlan),
       routeSource: routePlan.source || 'local',
+      routeSourceText: this.formatRouteSourceText(routePlan.source),
       routeError: routePlan.errorMessage || '',
       assistantResultText: ''
     });
   },
 
   applyRoutePlan(routePlan) {
-    const routeSteps = routePlan.segments.map((item, index) => ({
-      title: item.title,
-      desc: item.desc,
-      from: item.from,
-      to: item.to,
-      mode: item.mode,
-      minutes: item.minutes,
-      cost: item.cost || 0,
-      options: (item.options || []).map(option => ({
-        ...option,
-        active: option.mode === item.mode
-      })),
-      active: index === 0
-    }));
+    const routeSteps = routePlan.segments.map((item, index) => {
+      return this.formatRouteStep(item, index, routePlan.source || 'local');
+    });
     if (routePlan.orderedAttractions.length) {
       const last = routePlan.orderedAttractions[routePlan.orderedAttractions.length - 1];
       routeSteps.push({
@@ -383,6 +389,7 @@ Page({
       timeline: app.buildEditableTimeline({ ...this.data.trip, attractions: routePlan.orderedAttractions }),
       mapPreview: app.buildRouteMapPreview(this.data.trip, routePlan),
       routeSource: routePlan.source || 'local',
+      routeSourceText: this.formatRouteSourceText(routePlan.source),
       routeError: routePlan.errorMessage || '',
       assistantResultText: ''
     });

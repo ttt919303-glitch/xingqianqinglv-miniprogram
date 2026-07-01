@@ -246,6 +246,49 @@ test('Tencent transit route response is parsed from nested line data', () => {
   assert.ok(parsed.polylinePoints.length > 0);
 });
 
+test('route page exposes Tencent transit line names and local estimate notice', () => {
+  const env = loadMiniProgram();
+  const planConfig = env.run('pages/plan/plan.js');
+  const page = createPage(planConfig, { id: 'shanghai' });
+  page.triggerLoad();
+
+  assert.ok(page.data.routeSourceText.includes('\u672c\u5730\u4f30\u7b97'));
+
+  page.applyRoutePlan({
+    source: 'tencent',
+    strategyName: '\u817e\u8baf\u8def\u7ebf',
+    summary: '\u817e\u8baf\u5730\u56fe\u8def\u7ebf',
+    routeNames: '\u9646\u5bb6\u5634 -> \u8c6b\u56ed',
+    totalText: '\u7ea61\u5c0f\u65f6',
+    stayMinutes: 0,
+    transitMinutes: 28,
+    transferCount: 1,
+    transportBudget: 4,
+    totalMinutes: 28,
+    orderedAttractions: [
+      { time: '09:00', name: '\u9646\u5bb6\u5634', note: '' },
+      { time: '10:00', name: '\u8c6b\u56ed', note: '' }
+    ],
+    segments: [
+      {
+        title: '\u9646\u5bb6\u5634 -> \u8c6b\u56ed',
+        desc: '\u5730\u94c1\u7ea628\u5206\u949f',
+        from: '\u9646\u5bb6\u5634',
+        to: '\u8c6b\u56ed',
+        mode: '\u5730\u94c1',
+        minutes: 28,
+        cost: 4,
+        transitLines: ['\u5730\u94c110\u53f7\u7ebf'],
+        options: []
+      }
+    ]
+  });
+
+  assert.strictEqual(page.data.routeSteps[0].transitLinesText, '\u5730\u94c110\u53f7\u7ebf');
+  assert.strictEqual(page.data.routeSteps[0].sourceLabel, '\u817e\u8baf\u5b9e\u65f6');
+  assert.ok(page.data.routeSourceText.includes('\u817e\u8baf'));
+});
+
 test('backup import validates format and version before writing storage', () => {
   const env = loadMiniProgram();
   env.app.addItem({ categoryId: 'travel', name: '\u58a8\u955c', count: 1 });
